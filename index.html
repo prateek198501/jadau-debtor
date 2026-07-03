@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Debtors Dashboard — Valentine Jadau</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#faf7f5;
+    --card:#ffffff;
+    --ink:#3a3a45;
+    --sub:#8b8896;
+    --pink:#f7d9e3;
+    --pink-ink:#a24f6d;
+    --lav:#e3dcf5;
+    --lav-ink:#6b5ca5;
+    --mint:#d7f0e4;
+    --mint-ink:#3f8f6c;
+    --peach:#fbe3d0;
+    --peach-ink:#c07a3a;
+    --sky:#d9e8f7;
+    --sky-ink:#3f77a8;
+    --border:#eee3ea;
+    --shadow: 0 2px 10px rgba(120,90,110,0.07);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:24px;
+  }
+  h1{font-size:22px; margin:0 0 4px 0; font-weight:700;}
+  .subtitle{color:var(--sub); font-size:13px; margin-bottom:22px;}
+
+  /* ---------- LOGIN ---------- */
+  #loginScreen{
+    min-height:80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .login-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    padding:36px 34px;
+    width:340px;
+    text-align:center;
+  }
+  .login-card .badge{
+    width:56px; height:56px; border-radius:16px;
+    background:linear-gradient(135deg, var(--pink), var(--lav));
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 14px auto; font-size:24px;
+  }
+  .login-card h2{margin:0 0 4px 0; font-size:19px;}
+  .login-card p.hint{color:var(--sub); font-size:12.5px; margin-bottom:22px;}
+  .login-card input{
+    width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border);
+    font-size:14px; margin-bottom:12px; background:#fdfbfc; outline:none;
+  }
+  .login-card input:focus{border-color:var(--pink-ink);}
+  .login-card button{
+    width:100%; padding:12px; border-radius:12px; border:none; cursor:pointer;
+    background:linear-gradient(135deg, var(--pink-ink), var(--lav-ink)); color:#fff;
+    font-size:14px; font-weight:600; margin-top:6px; transition:.15s;
+  }
+  .login-card button:hover{opacity:.9; transform:translateY(-1px);}
+  .login-error{
+    background:#fbdada; color:#c0473f; font-size:12.5px; padding:8px 10px; border-radius:10px;
+    margin-bottom:12px; display:none;
+  }
+  .login-footnote{color:var(--sub); font-size:11px; margin-top:18px; line-height:1.5;}
+
+  /* ---------- APP ---------- */
+  #appScreen{display:none;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;
+    flex-wrap:wrap; gap:10px;
+  }
+  .who{
+    display:flex; align-items:center; gap:10px; background:var(--card);
+    border:1px solid var(--border); border-radius:14px; padding:8px 14px; box-shadow:var(--shadow);
+  }
+  .who .avatar{
+    width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--pink),var(--lav));
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#6b5ca5;
+  }
+  .who .meta{font-size:12.5px; line-height:1.3;}
+  .who .meta b{font-size:13.5px; display:block;}
+  .btn{
+    padding:9px 16px; border-radius:11px; border:1.5px solid var(--border); background:#fff;
+    font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; color:var(--ink);
+  }
+  .btn:hover{border-color:var(--pink-ink); color:var(--pink-ink); transform:translateY(-1px);}
+  .btn.primary{background:linear-gradient(135deg, var(--pink-ink), var(--lav-ink)); color:#fff; border:none;}
+  .btn.primary:hover{opacity:.9; color:#fff;}
+  .btn.ghost{background:var(--card);}
+  .admin-tools{display:flex; gap:10px; flex-wrap:wrap;}
+  #fileInput{display:none;}
+  .import-status{font-size:11.5px; color:var(--mint-ink); margin-left:4px;}
+
+  .grid-summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(210px,1fr));
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .stat-card{
+    background:var(--card);
+    border-radius:16px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card .label{font-size:12px; color:var(--sub); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;}
+  .stat-card .value{font-size:24px; font-weight:700;}
+  .stat-card .sub{font-size:12px; color:var(--sub); margin-top:4px;}
+  .stat-card.pink{background:linear-gradient(135deg,#fff 55%, var(--pink) 150%);}
+  .stat-card.pink .value{color:var(--pink-ink);}
+  .stat-card.lav{background:linear-gradient(135deg,#fff 55%, var(--lav) 150%);}
+  .stat-card.lav .value{color:var(--lav-ink);}
+  .stat-card.mint{background:linear-gradient(135deg,#fff 55%, var(--mint) 150%);}
+  .stat-card.mint .value{color:var(--mint-ink);}
+  .stat-card.peach{background:linear-gradient(135deg,#fff 55%, var(--peach) 150%);}
+  .stat-card.peach .value{color:var(--peach-ink);}
+  .stat-card.sky{background:linear-gradient(135deg,#fff 55%, var(--sky) 150%);}
+  .stat-card.sky .value{color:var(--sky-ink);}
+
+  .panel{
+    background:var(--card);
+    border-radius:16px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    margin-bottom:20px;
+  }
+  .panel h2{font-size:15px; margin:0 0 14px 0; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .panel h2 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .rep-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(190px,1fr));
+    gap:10px;
+  }
+  .rep-chip{
+    border:1.5px solid var(--border);
+    background:#fdfbfc;
+    border-radius:12px;
+    padding:10px 12px;
+    cursor:pointer;
+    transition:.15s;
+    text-align:left;
+  }
+  .rep-chip:hover{border-color:var(--lav-ink); transform:translateY(-1px);}
+  .rep-chip.active{background:var(--lav); border-color:var(--lav-ink);}
+  .rep-chip .name{font-weight:600; font-size:13.5px; margin-bottom:4px;}
+  .rep-chip .stats{font-size:11.5px; color:var(--sub); display:flex; justify-content:space-between;}
+  .rep-chip .stats b{color:var(--pink-ink);}
+
+  .controls-row{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  @media (max-width:800px){ .controls-row{grid-template-columns:1fr;} }
+
+  .search-box{
+    width:100%;
+    padding:11px 14px;
+    border-radius:12px;
+    border:1.5px solid var(--border);
+    font-size:14px;
+    background:#fdfbfc;
+    outline:none;
+  }
+  .search-box:focus{border-color:var(--pink-ink);}
+
+  .slider-wrap{display:flex; align-items:center; gap:12px;}
+  input[type=range]{
+    flex:1;
+    accent-color:var(--peach-ink);
+    height:6px;
+  }
+  .slider-value{
+    font-size:13px; font-weight:700; color:var(--peach-ink);
+    background:var(--peach); padding:5px 10px; border-radius:8px; min-width:76px; text-align:center;
+  }
+
+  .active-filters{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .tag{
+    font-size:11.5px; background:var(--sky); color:var(--sky-ink); padding:4px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .tag span.x{cursor:pointer; font-weight:700;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; padding:10px 12px; color:var(--sub); font-weight:600;
+    border-bottom:2px solid var(--border); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em;
+    cursor:pointer; user-select:none;
+  }
+  thead th:hover{color:var(--pink-ink);}
+  tbody tr{border-bottom:1px solid var(--border); cursor:pointer; transition:.1s;}
+  tbody tr:hover{background:#fbf6f8;}
+  tbody td{padding:11px 12px;}
+  .party-name{font-weight:600;}
+  .rep-tag{font-size:11px; color:var(--lav-ink); background:var(--lav); padding:2px 8px; border-radius:10px;}
+  .amt{font-weight:700; text-align:right; font-variant-numeric:tabular-nums;}
+  .od-badge{
+    font-size:11px; font-weight:700; padding:3px 9px; border-radius:10px; display:inline-block; min-width:40px; text-align:center;
+  }
+  .od-none{background:var(--mint); color:var(--mint-ink);}
+  .od-low{background:#fff3d6; color:#9a7b1c;}
+  .od-mid{background:var(--peach); color:var(--peach-ink);}
+  .od-high{background:#fbdada; color:#c0473f;}
+
+  .drill{display:none; background:#fdfaf8;}
+  .drill td{padding:0;}
+  .drill-inner{padding:14px 20px 18px 40px;}
+  .bill-row{
+    display:grid; grid-template-columns:110px 1fr 120px 110px 90px; gap:10px;
+    font-size:12.5px; padding:6px 0; border-bottom:1px dashed var(--border); align-items:center;
+  }
+  .bill-row.head{color:var(--sub); font-weight:600; text-transform:uppercase; font-size:10.5px; border-bottom:1.5px solid var(--border);}
+  .bill-row .amt{text-align:right;}
+  .caret{display:inline-block; transition:.15s; margin-right:6px; color:var(--sub);}
+  tr.open .caret{transform:rotate(90deg);}
+
+  .empty-state{text-align:center; padding:30px; color:var(--sub); font-size:13px;}
+  .count-pill{font-size:11.5px; color:var(--sub); font-weight:500;}
+  footer{text-align:center; color:var(--sub); font-size:11.5px; margin-top:20px;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="badge">💎</div>
+    <h2>Debtors Dashboard</h2>
+    <p class="hint">Valentine Jadau · Gems And Jewellery Zone</p>
+    <div class="login-error" id="loginError">Invalid username or password.</div>
+    <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+    <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn">Login</button>
+    <div class="login-footnote">Admin can import the master Excel &amp; export bills.json.<br>Sales reps see only their own accounts.</div>
+    <div class="login-footnote" id="dataSourceNote" style="margin-top:10px;">Loading data from bills.json…</div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="appScreen">
+  <div class="topbar">
+    <div>
+      <h1 style="margin-bottom:2px;">Debtors Dashboard</h1>
+      <div class="subtitle" style="margin-bottom:0;">Bills Receivable · Period 1-Apr-26 to 2-Jul-26 · As on 2-Jul-2026</div>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div class="admin-tools" id="adminTools" style="display:none;">
+        <button class="btn" id="importBtn">📥 Import Excel</button>
+        <input type="file" id="fileInput" accept=".xlsx,.xls">
+        <button class="btn" id="exportBtn">📤 Download bills.json</button>
+        <span class="import-status" id="importStatus"></span>
+      </div>
+      <div class="who">
+        <div class="avatar" id="avatarInit">A</div>
+        <div class="meta"><b id="whoName">Admin</b><span id="whoRole">Administrator</span></div>
+      </div>
+      <button class="btn ghost" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+  <div id="dataErrorBanner" style="display:none; background:#fbdada; color:#c0473f; padding:12px 16px; border-radius:12px; font-size:13px; margin-bottom:16px;"></div>
+
+  <div class="grid-summary" id="summaryCards"></div>
+
+  <div class="panel" id="repPanel">
+    <h2><span class="dot" style="background:var(--lav-ink)"></span>Filter by Sales Representative</h2>
+    <div class="rep-grid" id="repGrid"></div>
+  </div>
+
+  <div class="controls-row">
+    <div class="panel" style="margin-bottom:0;">
+      <h2><span class="dot" style="background:var(--pink-ink)"></span>Search by Party Name</h2>
+      <input type="text" class="search-box" id="searchBox" placeholder="Type a party / customer name…">
+    </div>
+    <div class="panel" style="margin-bottom:0;">
+      <h2><span class="dot" style="background:var(--peach-ink)"></span>Minimum Overdue Days</h2>
+      <div class="slider-wrap">
+        <input type="range" id="overdueSlider" min="0" max="180" value="0" step="1">
+        <div class="slider-value" id="sliderVal">0+ days</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="filterTagsPanel" style="display:none;">
+    <div class="active-filters" id="activeFilters"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="dot" style="background:var(--mint-ink)"></span>Accounts <span class="count-pill" id="resultCount"></span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="party">Party Name</th>
+          <th data-sort="rep">Sales Rep</th>
+          <th data-sort="bills">Bills</th>
+          <th data-sort="maxod">Max Overdue</th>
+          <th data-sort="total" style="text-align:right;">Pending Amount</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">No accounts match the current filters.</div>
+  </div>
+
+  <footer>Generated dashboard · figures in ₹ · overdue calculated as on 2-Jul-2026</footer>
+</div>
+
+<script>
+/* ============================================================
+   DATA SOURCE — always fetched live from bills.json. No data is
+   bundled in this file; if bills.json is unreachable, the dashboard
+   shows an empty state with an error banner rather than stale data.
+   ============================================================ */
+const BILLS_JSON_URL = 'https://prateek198501.github.io/jadau-debtor/bills.json';
+const FALLBACK_DATA = []; // intentionally empty — data must always come from bills.json
+const REPORT_DATE = new Date(2026, 6, 2); // 2-Jul-2026
+
+/* ============================================================
+   USERS / AUTH
+   ============================================================ */
+const USERS = {
+  'admin':     { password: 'admin@123', role: 'admin' },
+  'abhishek':  { password: 'jadau', role: 'rep', rep: 'Abhishek Jadau' },
+  'chirag':    { password: 'jadau', role: 'rep', rep: 'Chirag Jadau' },
+  'hansraj':   { password: 'jadau', role: 'rep', rep: 'Hansraj Khunteta' },
+  'kartik':    { password: 'jadau', role: 'rep', rep: 'Kartik Jadau' },
+  'mukesh':    { password: 'jadau', role: 'rep', rep: 'Mukesh Sir' },
+  'prateek':   { password: 'jadau', role: 'rep', rep: 'Prateek Sir' },
+  'sanjay':    { password: 'jadau', role: 'rep', rep: 'Sanjay Jadau' },
+  'ved':       { password: 'jadau', role: 'rep', rep: 'Ved Jadau' },
+  'suspense':  { password: 'jadau', role: 'rep', rep: 'Suspense' }
+};
+
+let session = null; // {username, role, rep}
+let rawData = null; // raw parsed party array (source of truth)
+
+rawData = FALLBACK_DATA; // temporary, replaced once fetch resolves
+let dataReady = fetchBillsJson();
+
+function fetchBillsJson(){
+  const cacheBust = 't=' + Date.now();
+  // Try the hardcoded absolute URL first, then relative paths as fallbacks
+  // (covers cases where the page is served from a different path/branch preview).
+  const candidates = [
+    BILLS_JSON_URL + (BILLS_JSON_URL.includes('?') ? '&' : '?') + cacheBust,
+    './bills.json?' + cacheBust,
+    'bills.json?' + cacheBust
+  ];
+
+  function tryNext(i, lastErr){
+    if(i >= candidates.length){
+      console.warn('Could not load bills.json from any candidate URL.', lastErr);
+      rawData = FALLBACK_DATA; // empty — this app has no bundled data by design
+      const note = document.getElementById('dataSourceNote');
+      note.textContent = '⚠ Could not reach bills.json (' + (lastErr ? lastErr.message : 'unknown error') + '). No data to display.';
+      note.style.color = '#c0473f';
+      return;
+    }
+    const url = candidates[i];
+    return fetch(url, {cache:'no-store'})
+      .then(res => {
+        if(!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
+        return res.json();
+      })
+      .then(json => {
+        if(Array.isArray(json) && json.length){
+          rawData = json;
+          const note = document.getElementById('dataSourceNote');
+          note.textContent = 'Live data from bills.json ✓';
+          note.style.color = 'var(--mint-ink)';
+        } else {
+          throw new Error('bills.json is empty or not an array (' + url + ')');
+        }
+      })
+      .catch(err => tryNext(i + 1, err));
+  }
+
+  return tryNext(0, null);
+}
+
+/* ============================================================
+   LOGIN HANDLERS
+   ============================================================ */
+function doLogin(){
+  const uname = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  const u = USERS[uname];
+  if(!u || u.password !== pass){
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Loading data…';
+  dataReady.finally(() => {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Login';
+    completeLogin(u, uname);
+  });
+}
+
+function completeLogin(u, uname){
+  session = { username: uname, role: u.role, rep: u.rep || null };
+  try{ sessionStorage.setItem('debtors_session', JSON.stringify(session)); }catch(e){}
+  showApp();
+}
+
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+
+  try{
+    if(session.role === 'admin'){
+      document.getElementById('adminTools').style.display = 'flex';
+      document.getElementById('repPanel').style.display = 'block';
+      document.getElementById('whoName').textContent = 'Admin';
+      document.getElementById('whoRole').textContent = 'Administrator · full access';
+      document.getElementById('avatarInit').textContent = 'A';
+      state.rep = null;
+      state.lockedRep = null;
+    } else {
+      document.getElementById('adminTools').style.display = 'none';
+      document.getElementById('repPanel').style.display = 'none';
+      document.getElementById('whoName').textContent = session.rep;
+      document.getElementById('whoRole').textContent = 'Sales Representative';
+      document.getElementById('avatarInit').textContent = session.rep.charAt(0);
+      state.rep = session.rep;
+      state.lockedRep = session.rep;
+    }
+    rebuildData();
+    renderAll();
+  }catch(err){
+    console.error('Dashboard failed to render:', err);
+    const banner = document.getElementById('dataErrorBanner');
+    banner.style.display = 'block';
+    banner.textContent = '⚠ Something went wrong rendering the dashboard: ' + err.message + ' (see browser console for details).';
+  }
+}
+
+// Restore an existing session (e.g. after a page refresh) once bills.json has loaded
+function restoreSession(){
+  let stored = null;
+  try{ stored = JSON.parse(sessionStorage.getItem('debtors_session')); }catch(e){}
+  if(stored && USERS[stored.username]){
+    session = stored;
+    dataReady.finally(showApp);
+    return true;
+  }
+  return false;
+}
+restoreSession();
+
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  session = null;
+  try{ sessionStorage.removeItem('debtors_session'); }catch(e){}
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+});
+
+/* ============================================================
+   EXCEL IMPORT (admin only) — mirrors the Tally export layout:
+   columns: Date | Ref No. | Party's Name | Name(rep) | Pending Amount | Due on | Overdue by days
+   ============================================================ */
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('importStatus');
+  statusEl.textContent = 'Reading…';
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try{
+      const wb = XLSX.read(evt.target.result, {type:'binary', cellDates:true});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:false, dateNF:'yyyy-mm-dd'});
+      const parsed = parseExcelRows(ws);
+      if(parsed.length === 0){
+        statusEl.textContent = '⚠ No accounts found in file.';
+        statusEl.style.color = '#c0473f';
+        return;
+      }
+      rawData = parsed;
+      rebuildData();
+      renderAll();
+      statusEl.style.color = 'var(--mint-ink)';
+      statusEl.textContent = `✓ Parsed ${parsed.length} accounts — click "Download bills.json" and replace the file in your repo to publish it.`;
+    }catch(err){
+      statusEl.style.color = '#c0473f';
+      statusEl.textContent = '⚠ Could not parse file.';
+      console.error(err);
+    }
+  };
+  reader.readAsBinaryString(file);
+});
+
+function excelSerialToDate(v){
+  // handles JS Date objects or excel serial numbers
+  if(v instanceof Date) return v;
+  if(typeof v === 'number'){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return new Date(d.y, d.m-1, d.d);
+  }
+  if(typeof v === 'string' && v.trim() !== ''){
+    const d = new Date(v);
+    if(!isNaN(d)) return d;
+  }
+  return null;
+}
+
+function fmtDateDMY(d){
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return String(d.getDate()).padStart(2,'0') + '-' + months[d.getMonth()] + '-' + d.getFullYear();
+}
+
+function parseExcelRows(ws){
+  // read raw cell values (not date-formatted strings) so we can detect dates reliably
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+  const dataRows = rows.slice(9); // skip the 9-row letterhead + header block (matches source template)
+  const parties = [];
+  let cur = null;
+
+  dataRows.forEach(r=>{
+    const date = r[0], ref = r[1], party = r[2], name = r[3], amount = r[4], dueon = r[5];
+    if(party && String(party).trim() !== '' && String(party).trim() !== "Party's Name"){
+      if(cur) parties.push(cur);
+      let rep = (name ? String(name).trim() : 'Unknown').replace(/\s+/g,' ');
+      rep = rep.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
+      cur = { party: String(party).trim(), rep: rep, bills: [], total: 0 };
+      return;
+    }
+    if(!cur) return;
+    if(date != null && ref){
+      const d = excelSerialToDate(date);
+      const due = excelSerialToDate(dueon);
+      const overdueDays = due ? Math.round((REPORT_DATE - due) / 86400000) : 0;
+      cur.bills.push({
+        date: d ? fmtDateDMY(d) : String(date),
+        ref: String(ref),
+        amount: amount ? Math.round(amount*100)/100 : 0,
+        due: due ? fmtDateDMY(due) : null,
+        overdueDays: overdueDays
+      });
+    } else if((date===null||date==='') && (ref===''||ref===null) && (party===''||party===null) && amount!=null && dueon===null){
+      cur.total = Math.round(amount*100)/100;
+    }
+  });
+  if(cur) parties.push(cur);
+  return parties;
+}
+
+/* ============================================================
+   EXPORT bills.json (admin only)
+   ============================================================ */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(rawData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bills.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ============================================================
+   DASHBOARD LOGIC
+   ============================================================ */
+let data = [];
+function rebuildData(){
+  let skipped = 0;
+  data = (Array.isArray(rawData) ? rawData : []).map(p => {
+    try{
+      const party = String(p.party || '').trim();
+      const rep = String(p.rep || 'Unknown').trim();
+      const bills = Array.isArray(p.bills) ? p.bills.map(b => ({
+        date: b.date || '',
+        ref: b.ref || '',
+        amount: Number(b.amount) || 0,
+        due: b.due || null,
+        overdueDays: Number(b.overdueDays) || 0
+      })) : [];
+      const total = Number(p.total) || bills.reduce((s,b)=>s+b.amount,0);
+      const maxOD = bills.length ? Math.max(0, ...bills.map(b => b.overdueDays)) : 0;
+      const overdueAmt = bills.filter(b=>b.overdueDays>0).reduce((s,b)=>s+b.amount,0);
+      const due7 = bills.filter(b=>b.overdueDays<0 && b.overdueDays>=-7).reduce((s,b)=>s+b.amount,0);
+      const due15 = bills.filter(b=>b.overdueDays<0 && b.overdueDays>=-15).reduce((s,b)=>s+b.amount,0);
+      return { party, rep, bills, total, maxOD, overdueAmt, due7, due15 };
+    }catch(e){
+      skipped++;
+      console.warn('Skipping malformed record in bills.json:', p, e);
+      return null;
+    }
+  }).filter(Boolean);
+
+  const banner = document.getElementById('dataErrorBanner');
+  if(!Array.isArray(rawData) || rawData.length === 0){
+    banner.style.display = 'block';
+    banner.textContent = '⚠ bills.json loaded but contained no accounts (empty or wrong format). Showing nothing to display.';
+  } else if(skipped > 0){
+    banner.style.display = 'block';
+    banner.textContent = `⚠ ${skipped} of ${rawData.length} record(s) in bills.json were malformed and skipped. Check the browser console for details.`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function fmtINR(n){
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+let state = { rep: null, lockedRep: null, search: '', minOverdue: 0, sortKey: 'total', sortDir: -1, openParty: null };
+
+function computeSummary(rows){
+  const totalPending = rows.reduce((s,p)=>s+p.total,0);
+  const totalOverdue = rows.reduce((s,p)=>s+p.overdueAmt,0);
+  const overdueAccts = rows.filter(p=>p.overdueAmt>0).length;
+  const due7 = rows.reduce((s,p)=>s+p.due7,0);
+  const due15 = rows.reduce((s,p)=>s+p.due15,0);
+  return {totalPending, totalOverdue, overdueAccts, due7, due15, totalAccts: rows.length};
+}
+
+function renderSummary(rows){
+  const s = computeSummary(rows);
+  const el = document.getElementById('summaryCards');
+  el.innerHTML = `
+    <div class="stat-card pink">
+      <div class="label">Total Pending</div>
+      <div class="value">${fmtINR(s.totalPending)}</div>
+      <div class="sub">${s.totalAccts} accounts</div>
+    </div>
+    <div class="stat-card peach">
+      <div class="label">Overdue Amount</div>
+      <div class="value">${fmtINR(s.totalOverdue)}</div>
+      <div class="sub">${s.overdueAccts} accounts overdue</div>
+    </div>
+    <div class="stat-card sky">
+      <div class="label">Due in Next 7 Days</div>
+      <div class="value">${fmtINR(s.due7)}</div>
+      <div class="sub">upcoming near-term</div>
+    </div>
+    <div class="stat-card mint">
+      <div class="label">Due in Next 15 Days</div>
+      <div class="value">${fmtINR(s.due15)}</div>
+      <div class="sub">upcoming mid-term</div>
+    </div>
+  `;
+}
+
+function repSummaries(){
+  const map = {};
+  data.forEach(p=>{
+    if(!map[p.rep]) map[p.rep] = {rep:p.rep, total:0, overdueAccts:0, accts:0};
+    map[p.rep].total += p.total;
+    map[p.rep].accts += 1;
+    if(p.overdueAmt>0) map[p.rep].overdueAccts += 1;
+  });
+  return Object.values(map).sort((a,b)=>b.total-a.total);
+}
+
+function renderRepGrid(){
+  if(state.lockedRep) return; // reps don't get the picker
+  const el = document.getElementById('repGrid');
+  const reps = repSummaries();
+  el.innerHTML = reps.map(r => `
+    <button class="rep-chip ${state.rep===r.rep?'active':''}" data-rep="${r.rep}">
+      <div class="name">${r.rep}</div>
+      <div class="stats"><span>${r.accts} accts</span><b>${fmtINR(r.total)}</b></div>
+      <div class="stats"><span>Overdue</span><span>${r.overdueAccts} accts</span></div>
+    </button>
+  `).join('');
+  el.querySelectorAll('.rep-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const rep = btn.getAttribute('data-rep');
+      state.rep = (state.rep === rep) ? null : rep;
+      renderAll();
+    });
+  });
+}
+
+function odBadgeClass(days){
+  if(days<=0) return 'od-none';
+  if(days<=30) return 'od-low';
+  if(days<=90) return 'od-mid';
+  return 'od-high';
+}
+function odBadgeLabel(days){
+  if(days<=0) return 'On time';
+  return days + 'd';
+}
+
+function getFiltered(){
+  let rows = data;
+  const effectiveRep = state.lockedRep || state.rep;
+  if(effectiveRep) rows = rows.filter(p=>p.rep===effectiveRep);
+  if(state.search.trim()) rows = rows.filter(p=>p.party.toLowerCase().includes(state.search.trim().toLowerCase()));
+  if(state.minOverdue>0) rows = rows.filter(p=>p.maxOD>=state.minOverdue);
+  rows = [...rows].sort((a,b)=>{
+    let av, bv;
+    switch(state.sortKey){
+      case 'party': av=a.party.toLowerCase(); bv=b.party.toLowerCase(); return state.sortDir*av.localeCompare(bv);
+      case 'rep': av=a.rep.toLowerCase(); bv=b.rep.toLowerCase(); return state.sortDir*av.localeCompare(bv);
+      case 'bills': av=a.bills.length; bv=b.bills.length; break;
+      case 'maxod': av=a.maxOD; bv=b.maxOD; break;
+      case 'total': default: av=a.total; bv=b.total; break;
+    }
+    return state.sortDir*(av-bv);
+  });
+  return rows;
+}
+
+function renderTags(){
+  const panel = document.getElementById('filterTagsPanel');
+  const el = document.getElementById('activeFilters');
+  const tags = [];
+  if(state.rep && !state.lockedRep) tags.push({label:`Rep: ${state.rep}`, key:'rep'});
+  if(state.search.trim()) tags.push({label:`Search: "${state.search.trim()}"`, key:'search'});
+  if(state.minOverdue>0) tags.push({label:`Overdue ≥ ${state.minOverdue}d`, key:'minOverdue'});
+  panel.style.display = tags.length ? 'block' : 'none';
+  el.innerHTML = tags.map(t=>`<div class="tag">${t.label} <span class="x" data-key="${t.key}">✕</span></div>`).join('');
+  el.querySelectorAll('.x').forEach(x=>{
+    x.addEventListener('click', ()=>{
+      const key = x.getAttribute('data-key');
+      if(key==='rep') state.rep=null;
+      if(key==='search'){state.search=''; document.getElementById('searchBox').value='';}
+      if(key==='minOverdue'){state.minOverdue=0; document.getElementById('overdueSlider').value=0; document.getElementById('sliderVal').textContent='0+ days';}
+      renderAll();
+    });
+  });
+}
+
+function renderTable(){
+  const rows = getFiltered();
+  const tbody = document.getElementById('tableBody');
+  document.getElementById('resultCount').textContent = `(${rows.length} of ${data.length})`;
+  document.getElementById('emptyState').style.display = rows.length ? 'none' : 'block';
+
+  tbody.innerHTML = rows.map((p, idx) => {
+    const billRows = p.bills.map(b => `
+      <div class="bill-row">
+        <div>${b.date}</div>
+        <div>${b.ref}</div>
+        <div>${b.due || '—'}</div>
+        <div><span class="od-badge ${odBadgeClass(b.overdueDays)}">${odBadgeLabel(b.overdueDays)}</span></div>
+        <div class="amt">${fmtINR(b.amount)}</div>
+      </div>
+    `).join('');
+    const isOpen = state.openParty === p.party;
+    return `
+      <tr class="main-row ${isOpen?'open':''}" data-party="${p.party}">
+        <td class="party-name"><span class="caret">▶</span>${p.party}</td>
+        <td><span class="rep-tag">${p.rep}</span></td>
+        <td>${p.bills.length}</td>
+        <td><span class="od-badge ${odBadgeClass(p.maxOD)}">${odBadgeLabel(p.maxOD)}</span></td>
+        <td class="amt">${fmtINR(p.total)}</td>
+      </tr>
+      <tr class="drill" style="display:${isOpen?'table-row':'none'};">
+        <td colspan="5">
+          <div class="drill-inner">
+            <div class="bill-row head">
+              <div>Bill Date</div><div>Ref No.</div><div>Due On</div><div>Overdue</div><div>Amount</div>
+            </div>
+            ${billRows}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('.main-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const party = tr.getAttribute('data-party');
+      state.openParty = (state.openParty===party) ? null : party;
+      renderTable();
+    });
+  });
+}
+
+function renderAll(){
+  const rows = getFiltered();
+  renderSummary(rows.length ? rows : []);
+  renderRepGrid();
+  renderTags();
+  renderTable();
+}
+
+document.getElementById('searchBox').addEventListener('input', (e)=>{
+  state.search = e.target.value;
+  renderAll();
+});
+
+document.getElementById('overdueSlider').addEventListener('input', (e)=>{
+  state.minOverdue = parseInt(e.target.value);
+  document.getElementById('sliderVal').textContent = state.minOverdue===0 ? '0+ days' : state.minOverdue+'+ days';
+  renderAll();
+});
+
+document.querySelectorAll('thead th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.getAttribute('data-sort');
+    if(state.sortKey===key) state.sortDir *= -1;
+    else { state.sortKey = key; state.sortDir = -1; }
+    renderTable();
+  });
+});
+</script>
+</body>
+</html>
