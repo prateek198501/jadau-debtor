@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Debtors Dashboard — Valentine Jadau</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#faf7f5;
@@ -97,12 +96,7 @@
     font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; color:var(--ink);
   }
   .btn:hover{border-color:var(--pink-ink); color:var(--pink-ink); transform:translateY(-1px);}
-  .btn.primary{background:linear-gradient(135deg, var(--pink-ink), var(--lav-ink)); color:#fff; border:none;}
-  .btn.primary:hover{opacity:.9; color:#fff;}
   .btn.ghost{background:var(--card);}
-  .admin-tools{display:flex; gap:10px; flex-wrap:wrap;}
-  #fileInput{display:none;}
-  .import-status{font-size:11.5px; color:var(--mint-ink); margin-left:4px;}
 
   .grid-summary{
     display:grid;
@@ -251,8 +245,7 @@
     <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
     <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
     <button id="loginBtn">Login</button>
-    <div class="login-footnote">Admin can import the master Excel &amp; export bills.json.<br>Sales reps see only their own accounts.</div>
-    <div class="login-footnote" id="dataSourceNote" style="margin-top:10px;">Loading data from bills.json…</div>
+    <div class="login-footnote">Sales reps see only their own accounts.</div>
   </div>
 </div>
 
@@ -264,12 +257,6 @@
       <div class="subtitle" style="margin-bottom:0;">Bills Receivable · Period 1-Apr-26 to 2-Jul-26 · As on 2-Jul-2026</div>
     </div>
     <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-      <div class="admin-tools" id="adminTools" style="display:none;">
-        <button class="btn" id="importBtn">📥 Import Excel</button>
-        <input type="file" id="fileInput" accept=".xlsx,.xls">
-        <button class="btn" id="exportBtn">📤 Download bills.json</button>
-        <span class="import-status" id="importStatus"></span>
-      </div>
       <div class="who">
         <div class="avatar" id="avatarInit">A</div>
         <div class="meta"><b id="whoName">Admin</b><span id="whoRole">Administrator</span></div>
@@ -327,12 +314,11 @@
 
 <script>
 /* ============================================================
-   DATA SOURCE — always fetched live from bills.json. No data is
-   bundled in this file; if bills.json is unreachable, the dashboard
-   shows an empty state with an error banner rather than stale data.
+   DATA — hardcoded directly in this file. To update the debtor
+   list, this JS array must be regenerated and replaced (ask for
+   a re-hardcode with the new Excel file — no import/fetch here).
    ============================================================ */
-const BILLS_JSON_URL = 'https://prateek198501.github.io/jadau-debtor/bills.json';
-const FALLBACK_DATA = []; // intentionally empty — data must always come from bills.json
+const RAW_DATA = [{"party": "A B Jewels", "rep": "Chirag Jadau", "bills": [{"date": "19-Jun-2026", "ref": "TI/26-27/0288", "amount": 7617, "due": "18-Aug-2026", "overdueDays": -47}, {"date": "24-Jun-2026", "ref": "TI/26-27/0296", "amount": 23294, "due": "23-Aug-2026", "overdueDays": -52}], "total": 30911}, {"party": "ABS Jewels", "rep": "Chirag Jadau", "bills": [{"date": "21-May-2026", "ref": "TI/26-27/0192", "amount": 948444, "due": "20-Jul-2026", "overdueDays": -18}, {"date": "08-Jun-2026", "ref": "TI/26-27/0255", "amount": 23359, "due": "07-Aug-2026", "overdueDays": -36}], "total": 971803}, {"party": "Agarwal Jewels & Gems Pvt Ltd.", "rep": "Kartik Jadau", "bills": [{"date": "27-Nov-2025", "ref": "TI/25-26/1114", "amount": 645510, "due": "26-Jan-2026", "overdueDays": 157}, {"date": "30-Dec-2025", "ref": "TI/25-26/1256", "amount": 226642, "due": "28-Feb-2026", "overdueDays": 124}, {"date": "05-Feb-2026", "ref": "TI/25-26/1438", "amount": 274372, "due": "06-Apr-2026", "overdueDays": 87}, {"date": "18-Apr-2026", "ref": "TI/26-27/0090", "amount": 855333, "due": "17-Jun-2026", "overdueDays": 15}], "total": 2001857}, {"party": "Alankar Gems And Jewellery Pvt Ltd", "rep": "Abhishek Jadau", "bills": [{"date": "14-Apr-2026", "ref": "TI/26-27/0068", "amount": 1966, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "15-May-2026", "ref": "TI/26-27/0171", "amount": 133128, "due": "14-Jul-2026", "overdueDays": -12}], "total": 135094}, {"party": "Alankar Jewellers", "rep": "Abhishek Jadau", "bills": [{"date": "18-Apr-2026", "ref": "TI/26-27/0089", "amount": 448, "due": "17-Jun-2026", "overdueDays": 15}, {"date": "28-Apr-2026", "ref": "TI/26-27/0123", "amount": 1114269, "due": "27-Jun-2026", "overdueDays": 5}, {"date": "14-May-2026", "ref": "TI/26-27/0168", "amount": 283809, "due": "13-Jul-2026", "overdueDays": -11}, {"date": "22-Jun-2026", "ref": "TI/26-27/0292", "amount": 1718271, "due": "21-Aug-2026", "overdueDays": -50}], "total": 3116797}, {"party": "Alka Jewels", "rep": "Kartik Jadau", "bills": [{"date": "27-Mar-2026", "ref": "TI/25-26/1642", "amount": 91223, "due": "26-May-2026", "overdueDays": 37}], "total": 91223}, {"party": "Anand Jewels Indore Pvt Ltd", "rep": "Hansraj Khunteta", "bills": [{"date": "19-May-2026", "ref": "TI/26-27/0186", "amount": 1165295, "due": "18-Jul-2026", "overdueDays": -16}, {"date": "20-May-2026", "ref": "TI/26-27/0190", "amount": 168817, "due": "19-Jul-2026", "overdueDays": -17}, {"date": "13-Jun-2026", "ref": "TI/26-27/0269", "amount": 507552, "due": "12-Aug-2026", "overdueDays": -41}, {"date": "18-Jun-2026", "ref": "TI/26-27/0282", "amount": 1281005, "due": "17-Aug-2026", "overdueDays": -46}], "total": 3122669}, {"party": "Asha Khatoria", "rep": "Suspense", "bills": [{"date": "28-Feb-2026", "ref": "TI/25-26/1544", "amount": 360500, "due": "29-Apr-2026", "overdueDays": 64}], "total": 360500}, {"party": "Ashtalaxmi Jewels", "rep": "Sanjay Jadau", "bills": [{"date": "23-Jan-2026", "ref": "TI/25-26/1367", "amount": 280, "due": "24-Mar-2026", "overdueDays": 100}], "total": 280}, {"party": "Azam Jewellers Private Limited", "rep": "Sanjay Jadau", "bills": [{"date": "28-Mar-2026", "ref": "TI/25-26/1653", "amount": 855780, "due": "27-May-2026", "overdueDays": 36}], "total": 855780}, {"party": "Beauty Creators LLP", "rep": "Abhishek Jadau", "bills": [{"date": "18-Apr-2026", "ref": "TI/26-27/0087", "amount": 342, "due": "17-Jun-2026", "overdueDays": 15}], "total": 342}, {"party": "Bhandari Jewellers", "rep": "Mukesh Sir", "bills": [{"date": "07-Jan-2026", "ref": "TI/25-26/1298", "amount": 7412999, "due": "08-Mar-2026", "overdueDays": 116}, {"date": "24-Jan-2026", "ref": "TI/25-26/1378", "amount": 14920454, "due": "25-Mar-2026", "overdueDays": 99}, {"date": "12-Mar-2026", "ref": "TI/25-26/1584", "amount": 13481493, "due": "11-May-2026", "overdueDays": 52}], "total": 35814946}, {"party": "Bishan Singh Jasbir Singh Jewellers LLP", "rep": "Kartik Jadau", "bills": [{"date": "16-Apr-2026", "ref": "TI/26-27/0075", "amount": 2950389, "due": "15-Jun-2026", "overdueDays": 17}, {"date": "28-May-2026", "ref": "TI/26-27/0218", "amount": 776879, "due": "27-Jul-2026", "overdueDays": -25}, {"date": "25-Jun-2026", "ref": "TI/26-27/0304", "amount": 664835, "due": "24-Aug-2026", "overdueDays": -53}], "total": 4392103}, {"party": "Bombay Jewellers", "rep": "Suspense", "bills": [{"date": "30-Jan-2020", "ref": "224/2019-20", "amount": 480436, "due": "30-Mar-2020", "overdueDays": 2285}], "total": 480436}, {"party": "Challani Jewellery Mart", "rep": "Abhishek Jadau", "bills": [{"date": "29-Sep-2025", "ref": "TI/25-26/0762", "amount": 746973, "due": "28-Nov-2025", "overdueDays": 216}, {"date": "06-Oct-2025", "ref": "TI/25-26/0792", "amount": 709096, "due": "05-Dec-2025", "overdueDays": 209}, {"date": "11-Nov-2025", "ref": "TI/25-26/0997", "amount": 2489192, "due": "10-Jan-2026", "overdueDays": 173}, {"date": "27-May-2026", "ref": "TI/26-27/0208", "amount": 431240, "due": "26-Jul-2026", "overdueDays": -24}], "total": 4376501}, {"party": "C.N Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "06-Jun-2026", "ref": "TI/26-27/0250", "amount": 2143900, "due": "05-Aug-2026", "overdueDays": -34}], "total": 2143900}, {"party": "Diamond India Limited", "rep": "Suspense", "bills": [{"date": "25-Feb-2026", "ref": "OX26G1KMUM468 Duty", "amount": 1181103.75, "due": "26-May-2026", "overdueDays": 37}, {"date": "12-Mar-2026", "ref": "DIADuty12032026", "amount": 1300000, "due": "10-Jun-2026", "overdueDays": 22}], "total": 2481103.75}, {"party": "D P Abhushan Ltd", "rep": "Hansraj Khunteta", "bills": [{"date": "21-May-2026", "ref": "TI/26-27/0191", "amount": 1343006, "due": "20-Jul-2026", "overdueDays": -18}, {"date": "26-May-2026", "ref": "TI/26-27/0201", "amount": 3197074, "due": "25-Jul-2026", "overdueDays": -23}, {"date": "03-Jun-2026", "ref": "TI/26-27/0236", "amount": 2551635, "due": "02-Aug-2026", "overdueDays": -31}, {"date": "05-Jun-2026", "ref": "TI/26-27/0247", "amount": 907382, "due": "04-Aug-2026", "overdueDays": -33}, {"date": "20-Jun-2026", "ref": "TI/26-27/0289", "amount": 346970, "due": "19-Aug-2026", "overdueDays": -48}], "total": 8346067}, {"party": "D P Jewelline Private Limited", "rep": "Mukesh Sir", "bills": [{"date": "08-May-2026", "ref": "TI/26-27/0152", "amount": 169861, "due": "07-Jul-2026", "overdueDays": -5}, {"date": "08-May-2026", "ref": "TI/26-27/0153", "amount": 13129648, "due": "07-Jul-2026", "overdueDays": -5}, {"date": "03-Jun-2026", "ref": "TI/26-27/0238", "amount": 11758966, "due": "02-Aug-2026", "overdueDays": -31}], "total": 25058475}, {"party": "Dutta Heritage Private Limited", "rep": "Kartik Jadau", "bills": [{"date": "16-Jan-2026", "ref": "TI/25-26/1317", "amount": 352725, "due": "17-Mar-2026", "overdueDays": 107}], "total": 352725}, {"party": "Emerald Jewel Industry India Ltd", "rep": "Mukesh Sir", "bills": [{"date": "23-Sep-2025", "ref": "TI/25-26/0710", "amount": 70832, "due": "22-Nov-2025", "overdueDays": 222}, {"date": "23-Sep-2025", "ref": "TI/25-26/0711", "amount": 189101, "due": "22-Nov-2025", "overdueDays": 222}, {"date": "30-Jun-2026", "ref": "TI/26-27/0319", "amount": 792969, "due": "29-Aug-2026", "overdueDays": -58}, {"date": "30-Jun-2026", "ref": "TI/26-27/0320", "amount": 532904, "due": "29-Aug-2026", "overdueDays": -58}, {"date": "30-Jun-2026", "ref": "TI/26-27/0321", "amount": 140809, "due": "29-Aug-2026", "overdueDays": -58}], "total": 1726615}, {"party": "Fuzion Jewels Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "13-May-2026", "ref": "TI/26-27/0167", "amount": 1940971, "due": "12-Jul-2026", "overdueDays": -10}, {"date": "27-May-2026", "ref": "TI/26-27/0211", "amount": 1069024, "due": "26-Jul-2026", "overdueDays": -24}, {"date": "04-Jun-2026", "ref": "TI/26-27/0240", "amount": 277587, "due": "03-Aug-2026", "overdueDays": -32}, {"date": "08-Jun-2026", "ref": "TI/26-27/0256", "amount": 198550, "due": "07-Aug-2026", "overdueDays": -36}], "total": 3486132}, {"party": "Gandhi Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "13-Feb-2026", "ref": "TI/25-26/1486", "amount": 94, "due": "14-Apr-2026", "overdueDays": 79}, {"date": "09-Mar-2026", "ref": "TI/25-26/1575", "amount": 12037, "due": "08-May-2026", "overdueDays": 55}, {"date": "20-Mar-2026", "ref": "TI/25-26/1618", "amount": 87932, "due": "19-May-2026", "overdueDays": 44}, {"date": "26-Jun-2026", "ref": "TI/26-27/0307", "amount": 144027, "due": "25-Aug-2026", "overdueDays": -54}], "total": 244090}, {"party": "Gem House", "rep": "Mukesh Sir", "bills": [{"date": "14-Feb-2026", "ref": "TI/25-26/1498", "amount": 7718027, "due": "15-Apr-2026", "overdueDays": 78}, {"date": "12-Mar-2026", "ref": "TI/25-26/1585", "amount": 5677849, "due": "11-May-2026", "overdueDays": 52}], "total": 13395876}, {"party": "Gems & Jewels Palace", "rep": "Mukesh Sir", "bills": [{"date": "25-Dec-2025", "ref": "TI/25-26/1231", "amount": 2735, "due": "23-Feb-2026", "overdueDays": 129}], "total": 2735}, {"party": "Gems Paradise", "rep": "Mukesh Sir", "bills": [{"date": "14-Feb-2026", "ref": "TI/25-26/1497", "amount": 8766131, "due": "15-Apr-2026", "overdueDays": 78}, {"date": "20-Feb-2026", "ref": "TI/25-26/1520", "amount": 8599017, "due": "21-Apr-2026", "overdueDays": 72}, {"date": "12-Mar-2026", "ref": "TI/25-26/1586", "amount": 1471902, "due": "11-May-2026", "overdueDays": 52}, {"date": "11-Apr-2026", "ref": "TI/26-27/0050", "amount": 2035713, "due": "10-Jun-2026", "overdueDays": 22}, {"date": "11-Apr-2026", "ref": "TI/26-27/0051", "amount": 10552926, "due": "10-Jun-2026", "overdueDays": 22}], "total": 31425689}, {"party": "GRT Jewellers ( India) Private Limited", "rep": "Abhishek Jadau", "bills": [{"date": "05-May-2026", "ref": "TI/26-27/0136", "amount": 144109, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "05-Jun-2026", "ref": "TI/26-27/0246", "amount": 85560, "due": "04-Aug-2026", "overdueDays": -33}, {"date": "15-Jun-2026", "ref": "TI/26-27/0271", "amount": 259149, "due": "14-Aug-2026", "overdueDays": -43}], "total": 488818}, {"party": "Harsahaimal Shiamlal Jewellers Lucknow Pvt Ltd", "rep": "Kartik Jadau", "bills": [{"date": "06-Feb-2026", "ref": "TI/25-26/1443", "amount": 368378, "due": "07-Apr-2026", "overdueDays": 86}, {"date": "14-Feb-2026", "ref": "TI/25-26/1499", "amount": 67538, "due": "15-Apr-2026", "overdueDays": 78}, {"date": "10-Apr-2026", "ref": "TI/26-27/0041", "amount": 216298, "due": "09-Jun-2026", "overdueDays": 23}, {"date": "03-Jun-2026", "ref": "TI/26-27/0234", "amount": 256577, "due": "02-Aug-2026", "overdueDays": -31}], "total": 908791}, {"party": "Hazoorilal Jewellers Private Limited", "rep": "Kartik Jadau", "bills": [{"date": "30-Dec-2025", "ref": "TI/25-26/1260", "amount": 107000, "due": "28-Feb-2026", "overdueDays": 124}], "total": 107000}, {"party": "House Of Jewels", "rep": "Chirag Jadau", "bills": [{"date": "25-Jun-2026", "ref": "TI/26-27/0305", "amount": 556455, "due": "24-Aug-2026", "overdueDays": -53}], "total": 556455}, {"party": "Iyra Jewels Diamonds", "rep": "Sanjay Jadau", "bills": [{"date": "24-Feb-2026", "ref": "TI/25-26/1535", "amount": 7617, "due": "25-Apr-2026", "overdueDays": 68}], "total": 7617}, {"party": "Jatin Mor Jewels Private Limited", "rep": "Sanjay Jadau", "bills": [{"date": "24-Apr-2026", "ref": "TI/26-27/0110", "amount": 1667764, "due": "23-Jun-2026", "overdueDays": 9}, {"date": "11-Jun-2026", "ref": "TI/26-27/0263", "amount": 2291449, "due": "10-Aug-2026", "overdueDays": -39}], "total": 3959213}, {"party": "Jewel World", "rep": "Chirag Jadau", "bills": [{"date": "12-Nov-2025", "ref": "TI/25-26/1002", "amount": 88567, "due": "11-Jan-2026", "overdueDays": 172}, {"date": "06-Jan-2026", "ref": "TI/25-26/1287", "amount": 322899, "due": "07-Mar-2026", "overdueDays": 117}, {"date": "19-Mar-2026", "ref": "TI/25-26/1610", "amount": 276391, "due": "18-May-2026", "overdueDays": 45}], "total": 687857}, {"party": "Jugal Kishore The Jewellers", "rep": "Kartik Jadau", "bills": [{"date": "17-Jan-2026", "ref": "TI/25-26/1327", "amount": 440178, "due": "18-Mar-2026", "overdueDays": 106}, {"date": "14-Mar-2026", "ref": "TI/25-26/1596", "amount": 5549771, "due": "13-May-2026", "overdueDays": 50}, {"date": "11-Apr-2026", "ref": "TI/26-27/0046", "amount": 787189, "due": "10-Jun-2026", "overdueDays": 22}], "total": 6777138}, {"party": "K.D Diamond", "rep": "Chirag Jadau", "bills": [{"date": "12-Jul-2024", "ref": "VJD/24-25/247", "amount": 197654, "due": "10-Sep-2024", "overdueDays": 660}], "total": 197654}, {"party": "Keshavlal Nathubhai Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "05-Mar-2026", "ref": "TI/25-26/1561", "amount": 1933397, "due": "04-May-2026", "overdueDays": 59}, {"date": "07-Mar-2026", "ref": "TI/25-26/1570", "amount": 42389, "due": "06-May-2026", "overdueDays": 57}, {"date": "04-May-2026", "ref": "TI/26-27/0131", "amount": 1020021, "due": "03-Jul-2026", "overdueDays": -1}, {"date": "22-May-2026", "ref": "TI/26-27/0198", "amount": 956111, "due": "21-Jul-2026", "overdueDays": -19}, {"date": "05-Jun-2026", "ref": "TI/26-27/0249", "amount": 1029137, "due": "04-Aug-2026", "overdueDays": -33}, {"date": "20-Jun-2026", "ref": "TI/26-27/0290", "amount": 941551, "due": "19-Aug-2026", "overdueDays": -48}], "total": 5922606}, {"party": "Khurana Jewellers & SONS Pvt Ltd", "rep": "Kartik Jadau", "bills": [{"date": "20-Feb-2026", "ref": "TI/25-26/1525", "amount": 1704415, "due": "21-Apr-2026", "overdueDays": 72}, {"date": "20-Mar-2026", "ref": "TI/25-26/1619", "amount": 42135, "due": "19-May-2026", "overdueDays": 44}, {"date": "02-Apr-2026", "ref": "TI/26-27/0007", "amount": 146829, "due": "01-Jun-2026", "overdueDays": 31}, {"date": "26-May-2026", "ref": "TI/26-27/0205", "amount": 453489, "due": "25-Jul-2026", "overdueDays": -23}], "total": 2346868}, {"party": "Kishan R Jewels", "rep": "Chirag Jadau", "bills": [{"date": "19-Sep-2025", "ref": "TI/25-26/0675", "amount": 3164376, "due": "18-Nov-2025", "overdueDays": 226}, {"date": "19-Jan-2026", "ref": "TI/25-26/1330", "amount": 47866, "due": "20-Mar-2026", "overdueDays": 104}, {"date": "14-May-2026", "ref": "TI/26-27/0169", "amount": 972251, "due": "13-Jul-2026", "overdueDays": -11}], "total": 4184493}, {"party": "K M Choksi Jewellers Private Limited", "rep": "Chirag Jadau", "bills": [{"date": "29-May-2026", "ref": "TI/26-27/0222", "amount": 713680, "due": "28-Jul-2026", "overdueDays": -26}], "total": 713680}, {"party": "Kothari Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "17-Nov-2025", "ref": "TI/25-26/1042", "amount": 131150, "due": "16-Jan-2026", "overdueDays": 167}, {"date": "20-Nov-2025", "ref": "TI/25-26/1071", "amount": 607313, "due": "19-Jan-2026", "overdueDays": 164}, {"date": "02-Jan-2026", "ref": "TI/25-26/1272", "amount": 94583, "due": "03-Mar-2026", "overdueDays": 121}], "total": 833046}, {"party": "K R Sons Ahmedabad", "rep": "Chirag Jadau", "bills": [{"date": "25-Jun-2026", "ref": "TI/26-27/0301", "amount": 2500202, "due": "24-Aug-2026", "overdueDays": -53}], "total": 2500202}, {"party": "Kundan Jewellers Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "16-Feb-2026", "ref": "TI/25-26/1505", "amount": 4130778, "due": "17-Apr-2026", "overdueDays": 76}, {"date": "20-Feb-2026", "ref": "TI/25-26/1523", "amount": 721610, "due": "21-Apr-2026", "overdueDays": 72}, {"date": "18-Apr-2026", "ref": "TI/26-27/0093", "amount": 778669, "due": "17-Jun-2026", "overdueDays": 15}], "total": 5631057}, {"party": "Laxmi Ganesh Jewellers", "rep": "Sanjay Jadau", "bills": [{"date": "06-Feb-2026", "ref": "TI/25-26/1439", "amount": 1351630, "due": "07-Apr-2026", "overdueDays": 86}], "total": 1351630}, {"party": "Madan Lal Chhagan Lal Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "02-Jun-2026", "ref": "TI/26-27/0233", "amount": 346818, "due": "01-Aug-2026", "overdueDays": -30}, {"date": "03-Jun-2026", "ref": "TI/26-27/0239", "amount": 464167, "due": "02-Aug-2026", "overdueDays": -31}, {"date": "13-Jun-2026", "ref": "TI/26-27/0267", "amount": 1145552, "due": "12-Aug-2026", "overdueDays": -41}, {"date": "25-Jun-2026", "ref": "TI/26-27/0302", "amount": 1745246, "due": "24-Aug-2026", "overdueDays": -53}, {"date": "26-Jun-2026", "ref": "TI/26-27/0308", "amount": 364281, "due": "25-Aug-2026", "overdueDays": -54}, {"date": "26-Jun-2026", "ref": "TI/26-27/0309", "amount": 845749, "due": "25-Aug-2026", "overdueDays": -54}], "total": 4911813}, {"party": "Mahendra Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "05-Jan-2026", "ref": "TI/25-26/1283", "amount": 39707, "due": "06-Mar-2026", "overdueDays": 118}, {"date": "23-Apr-2026", "ref": "TI/26-27/0103", "amount": 2335052, "due": "22-Jun-2026", "overdueDays": 10}, {"date": "23-Apr-2026", "ref": "TI/26-27/0104", "amount": 233426, "due": "22-Jun-2026", "overdueDays": 10}], "total": 2608185}, {"party": "Malabar Gold And Diamonds FZCO ( Export)", "rep": "Abhishek Jadau", "bills": [{"date": "11-Apr-2026", "ref": "EI/26-27/EX01", "amount": 598650, "due": "10-Jun-2026", "overdueDays": 22}, {"date": "18-May-2026", "ref": "EI/26-27/EX03", "amount": 4373460, "due": "17-Jul-2026", "overdueDays": -15}], "total": 4972110}, {"party": "Malabar Gold And Diamonds Ltd Jaipur", "rep": "Abhishek Jadau", "bills": [{"date": "12-May-2026", "ref": "TI/26-27/0163", "amount": 603182, "due": "11-Jul-2026", "overdueDays": -9}], "total": 603182}, {"party": "Malabar Gold Pvt Ltd ( Mumbai)", "rep": "Abhishek Jadau", "bills": [{"date": "06-Mar-2026", "ref": "TI/25-26/1563", "amount": 601854.97, "due": "05-May-2026", "overdueDays": 58}, {"date": "09-Mar-2026", "ref": "TI/25-26/1576", "amount": 2095371, "due": "08-May-2026", "overdueDays": 55}, {"date": "09-Mar-2026", "ref": "TI/25-26/1577", "amount": 1223783, "due": "08-May-2026", "overdueDays": 55}, {"date": "19-Mar-2026", "ref": "TI/25-26/1605", "amount": 662521, "due": "18-May-2026", "overdueDays": 45}, {"date": "19-Mar-2026", "ref": "TI/25-26/1606", "amount": 246659, "due": "18-May-2026", "overdueDays": 45}, {"date": "19-Mar-2026", "ref": "TI/25-26/1608", "amount": 678913, "due": "18-May-2026", "overdueDays": 45}, {"date": "20-Mar-2026", "ref": "TI/25-26/1615", "amount": 344736, "due": "19-May-2026", "overdueDays": 44}, {"date": "21-Mar-2026", "ref": "TI/25-26/1621", "amount": 7759746.98, "due": "20-May-2026", "overdueDays": 43}, {"date": "28-Mar-2026", "ref": "TI/25-26/1654", "amount": 526835, "due": "27-May-2026", "overdueDays": 36}, {"date": "06-Apr-2026", "ref": "TI/26-27/0020", "amount": 709401.12, "due": "05-Jun-2026", "overdueDays": 27}, {"date": "08-Apr-2026", "ref": "TI/26-27/0027", "amount": 1290286, "due": "07-Jun-2026", "overdueDays": 25}, {"date": "14-Apr-2026", "ref": "TI/26-27/0060", "amount": 1634841, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "14-Apr-2026", "ref": "TI/26-27/0062", "amount": 774651, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "14-Apr-2026", "ref": "TI/26-27/0063", "amount": 482962, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "14-Apr-2026", "ref": "TI/26-27/0069", "amount": 852435, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "16-Apr-2026", "ref": "TI/26-27/0077", "amount": 30877573, "due": "15-Jun-2026", "overdueDays": 17}, {"date": "17-Apr-2026", "ref": "TI/26-27/0084", "amount": 363422, "due": "16-Jun-2026", "overdueDays": 16}, {"date": "17-Apr-2026", "ref": "TI/26-27/0085", "amount": 99226, "due": "16-Jun-2026", "overdueDays": 16}, {"date": "17-Apr-2026", "ref": "TI/26-27/0086", "amount": 111901, "due": "16-Jun-2026", "overdueDays": 16}, {"date": "21-Apr-2026", "ref": "TI/26-27/0096", "amount": 1859683.03, "due": "20-Jun-2026", "overdueDays": 12}, {"date": "22-Apr-2026", "ref": "TI/26-27/0099", "amount": 258150, "due": "21-Jun-2026", "overdueDays": 11}, {"date": "22-Apr-2026", "ref": "TI/26-27/0100", "amount": 549946, "due": "21-Jun-2026", "overdueDays": 11}, {"date": "24-Apr-2026", "ref": "TI/26-27/0111", "amount": 387053, "due": "23-Jun-2026", "overdueDays": 9}, {"date": "24-Apr-2026", "ref": "TI/26-27/0112", "amount": 464376, "due": "23-Jun-2026", "overdueDays": 9}, {"date": "24-Apr-2026", "ref": "TI/26-27/0113", "amount": 3789, "due": "23-Jun-2026", "overdueDays": 9}, {"date": "25-Apr-2026", "ref": "TI/26-27/0116", "amount": 1597109, "due": "24-Jun-2026", "overdueDays": 8}, {"date": "25-Apr-2026", "ref": "TI/26-27/0117", "amount": 53984, "due": "24-Jun-2026", "overdueDays": 8}, {"date": "05-May-2026", "ref": "TI/26-27/0137", "amount": 255550, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "05-May-2026", "ref": "TI/26-27/0138", "amount": 1228092, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "05-May-2026", "ref": "TI/26-27/0139", "amount": 1383406, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "05-May-2026", "ref": "TI/26-27/0140", "amount": 147808, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "07-May-2026", "ref": "TI/26-27/0149", "amount": 87942, "due": "06-Jul-2026", "overdueDays": -4}, {"date": "16-May-2026", "ref": "TI/26-27/0181", "amount": 100281, "due": "15-Jul-2026", "overdueDays": -13}, {"date": "22-May-2026", "ref": "TI/26-27/0196", "amount": 205580.92, "due": "21-Jul-2026", "overdueDays": -19}, {"date": "22-May-2026", "ref": "TI/26-27/0199", "amount": 584496, "due": "21-Jul-2026", "overdueDays": -19}, {"date": "27-May-2026", "ref": "TI/26-27/0206", "amount": 144568, "due": "26-Jul-2026", "overdueDays": -24}, {"date": "28-May-2026", "ref": "TI/26-27/0212", "amount": 796, "due": "27-Jul-2026", "overdueDays": -25}, {"date": "29-May-2026", "ref": "TI/26-27/0224", "amount": 1173134, "due": "28-Jul-2026", "overdueDays": -26}, {"date": "30-May-2026", "ref": "TI/26-27/0226", "amount": 340797, "due": "29-Jul-2026", "overdueDays": -27}, {"date": "06-Jun-2026", "ref": "TI/26-27/0254", "amount": 705859, "due": "05-Aug-2026", "overdueDays": -34}, {"date": "09-Jun-2026", "ref": "TI/26-27/0257", "amount": 676120.6, "due": "08-Aug-2026", "overdueDays": -37}, {"date": "13-Jun-2026", "ref": "TI/26-27/0268", "amount": 155608, "due": "12-Aug-2026", "overdueDays": -41}, {"date": "15-Jun-2026", "ref": "TI/26-27/0273", "amount": 114503, "due": "14-Aug-2026", "overdueDays": -43}, {"date": "15-Jun-2026", "ref": "TI/26-27/0274", "amount": 311907, "due": "14-Aug-2026", "overdueDays": -43}, {"date": "15-Jun-2026", "ref": "TI/26-27/0275", "amount": 112709, "due": "14-Aug-2026", "overdueDays": -43}, {"date": "18-Jun-2026", "ref": "TI/26-27/0283", "amount": 656688, "due": "17-Aug-2026", "overdueDays": -46}, {"date": "25-Jun-2026", "ref": "TI/26-27/0303", "amount": 109964, "due": "24-Aug-2026", "overdueDays": -53}, {"date": "27-Jun-2026", "ref": "TI/26-27/0311", "amount": 3293792, "due": "26-Aug-2026", "overdueDays": -55}, {"date": "27-Jun-2026", "ref": "TI/26-27/0312", "amount": 475148, "due": "26-Aug-2026", "overdueDays": -55}, {"date": "27-Jun-2026", "ref": "TI/26-27/0313", "amount": 10417318, "due": "26-Aug-2026", "overdueDays": -55}], "total": 79193275.62}, {"party": "Manek Gem Art International", "rep": "Chirag Jadau", "bills": [{"date": "26-Nov-2025", "ref": "TI/25-26/1104", "amount": 547, "due": "25-Jan-2026", "overdueDays": 158}, {"date": "17-Apr-2026", "ref": "TI/26-27/0083", "amount": 106788, "due": "16-Jun-2026", "overdueDays": 16}, {"date": "13-Jun-2026", "ref": "TI/26-27/0266", "amount": 20526, "due": "12-Aug-2026", "overdueDays": -41}], "total": 127861}, {"party": "Mangatria Neeraj Jewellers Pvt Ltd", "rep": "Sanjay Jadau", "bills": [{"date": "22-Jun-2026", "ref": "TI/26-27/0293", "amount": 1306172, "due": "21-Aug-2026", "overdueDays": -50}], "total": 1306172}, {"party": "Manik Chand & Sons ( Jewellers ) Pvt Ltd", "rep": "Kartik Jadau", "bills": [{"date": "13-Jan-2026", "ref": "TI/25-26/1312", "amount": 295212, "due": "14-Mar-2026", "overdueDays": 110}], "total": 295212}, {"party": "Mani Ratna The Jewel Paradise", "rep": "Chirag Jadau", "bills": [{"date": "13-Mar-2026", "ref": "TI/25-26/1595", "amount": 562065, "due": "12-May-2026", "overdueDays": 51}, {"date": "22-Apr-2026", "ref": "TI/26-27/0102", "amount": 2278349, "due": "21-Jun-2026", "overdueDays": 11}, {"date": "29-Jun-2026", "ref": "TI/26-27/0317", "amount": 73156, "due": "28-Aug-2026", "overdueDays": -57}], "total": 2913570}, {"party": "Manohar Lal Sarraf & Sons Jewellers Pvt Ltd", "rep": "Kartik Jadau", "bills": [{"date": "27-Feb-2026", "ref": "TI/25-26/1538", "amount": 1140619, "due": "28-Apr-2026", "overdueDays": 65}, {"date": "12-Mar-2026", "ref": "TI/25-26/1587", "amount": 3200280, "due": "11-May-2026", "overdueDays": 52}, {"date": "12-Mar-2026", "ref": "TI/25-26/1588", "amount": 2601953, "due": "11-May-2026", "overdueDays": 52}, {"date": "10-Apr-2026", "ref": "TI/26-27/0037", "amount": 145586, "due": "09-Jun-2026", "overdueDays": 23}, {"date": "10-Apr-2026", "ref": "TI/26-27/0038", "amount": 1066, "due": "09-Jun-2026", "overdueDays": 23}, {"date": "30-Apr-2026", "ref": "TI/26-27/0128", "amount": 2619205, "due": "29-Jun-2026", "overdueDays": 3}], "total": 9708709}, {"party": "Manubhai Gems Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "19-Jun-2026", "ref": "TI/26-27/0287", "amount": 1180827.01, "due": "18-Aug-2026", "overdueDays": -47}, {"date": "22-Jun-2026", "ref": "DI2606000128", "amount": 3131, "due": "21-Aug-2026", "overdueDays": -50}, {"date": "23-Jun-2026", "ref": "TI/26-27/0294", "amount": 769945, "due": "22-Aug-2026", "overdueDays": -51}, {"date": "26-Jun-2026", "ref": "TI/26-27/0310", "amount": 2086072, "due": "25-Aug-2026", "overdueDays": -54}, {"date": "29-Jun-2026", "ref": "TI/26-27/0316", "amount": 4112, "due": "28-Aug-2026", "overdueDays": -57}], "total": 4044087.01}, {"party": "Mawsim Gold Private Limited", "rep": "Ved Jadau", "bills": [{"date": "23-Dec-2025", "ref": "TI/25-26/1227", "amount": 663132, "due": "21-Feb-2026", "overdueDays": 131}, {"date": "12-Feb-2026", "ref": "TI/25-26/1477", "amount": 302426, "due": "13-Apr-2026", "overdueDays": 80}], "total": 965558}, {"party": "Maya Sanghavi Jewels LLP", "rep": "Chirag Jadau", "bills": [{"date": "08-Oct-2025", "ref": "TI/25-26/0804", "amount": 423915, "due": "07-Dec-2025", "overdueDays": 207}, {"date": "15-Jan-2026", "ref": "TI/25-26/1315", "amount": 7228530, "due": "16-Mar-2026", "overdueDays": 108}, {"date": "30-Jan-2026", "ref": "TI/25-26/1404", "amount": 38115, "due": "31-Mar-2026", "overdueDays": 93}, {"date": "17-Feb-2026", "ref": "TI/25-26/1506", "amount": 761433, "due": "18-Apr-2026", "overdueDays": 75}, {"date": "23-Feb-2026", "ref": "TI/25-26/1533", "amount": 282636, "due": "24-Apr-2026", "overdueDays": 69}, {"date": "15-May-2026", "ref": "TI/26-27/0175", "amount": 307237, "due": "14-Jul-2026", "overdueDays": -12}], "total": 9041866}, {"party": "Meena Jewellers LLC ( Export )", "rep": "Mukesh Sir", "bills": [{"date": "12-May-2026", "ref": "EI/26-27/EX02", "amount": 17097612, "due": "11-Jul-2026", "overdueDays": -9}], "total": 17097612}, {"party": "Mile Stone Precious Creations LLP", "rep": "Sanjay Jadau", "bills": [{"date": "16-May-2026", "ref": "TI/26-27/0182", "amount": 969460, "due": "15-Jul-2026", "overdueDays": -13}], "total": 969460}, {"party": "M Leena Fashion Jewellery & Clothings", "rep": "Chirag Jadau", "bills": [{"date": "28-Apr-2026", "ref": "TI/26-27/0121", "amount": 7402, "due": "27-Jun-2026", "overdueDays": 5}, {"date": "06-May-2026", "ref": "TI/26-27/0147", "amount": 3511, "due": "05-Jul-2026", "overdueDays": -3}, {"date": "04-Jun-2026", "ref": "TI/26-27/0245", "amount": 54250, "due": "03-Aug-2026", "overdueDays": -32}, {"date": "18-Jun-2026", "ref": "TI/26-27/0284", "amount": 66386, "due": "17-Aug-2026", "overdueDays": -46}], "total": 131549}, {"party": "M/S Karrat 22 Enterprises", "rep": "Abhishek Jadau", "bills": [{"date": "25-Mar-2025", "ref": "VJD/24-25/1430", "amount": 627888, "due": "24-May-2025", "overdueDays": 404}, {"date": "29-Mar-2025", "ref": "VJD/24-25/1449", "amount": 642042.37, "due": "28-May-2025", "overdueDays": 400}, {"date": "10-Apr-2025", "ref": "TI/25-26/0026", "amount": 82565, "due": "09-Jun-2025", "overdueDays": 388}, {"date": "22-Apr-2025", "ref": "TI/25-26/0077", "amount": 2065753, "due": "21-Jun-2025", "overdueDays": 376}, {"date": "28-Apr-2025", "ref": "TI/25-26/0102", "amount": 859966, "due": "27-Jun-2025", "overdueDays": 370}, {"date": "30-May-2025", "ref": "TI/25-26/0216", "amount": 2240804, "due": "29-Jul-2025", "overdueDays": 338}, {"date": "25-Jun-2025", "ref": "TI/25-26/0286", "amount": 568072, "due": "24-Aug-2025", "overdueDays": 312}, {"date": "20-Aug-2025", "ref": "TI/25-26/0496", "amount": 6443, "due": "19-Oct-2025", "overdueDays": 256}, {"date": "22-Sep-2025", "ref": "TI/25-26/0697", "amount": 1906101, "due": "21-Nov-2025", "overdueDays": 223}, {"date": "22-Sep-2025", "ref": "TI/25-26/0698", "amount": 6999516, "due": "21-Nov-2025", "overdueDays": 223}], "total": 15999150.37}, {"party": "Mukund International Private Limited", "rep": "Abhishek Jadau", "bills": [{"date": "11-Apr-2026", "ref": "TI/26-27/0048", "amount": 174947, "due": "10-Jun-2026", "overdueDays": 22}], "total": 174947}, {"party": "Nikita Jewellers Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "28-May-2026", "ref": "TI/26-27/0213", "amount": 352268, "due": "27-Jul-2026", "overdueDays": -25}], "total": 352268}, {"party": "N S Jewellers", "rep": "Kartik Jadau", "bills": [{"date": "05-Dec-2024", "ref": "VJD/24-25/906", "amount": 128512, "due": "03-Feb-2025", "overdueDays": 514}, {"date": "24-Dec-2024", "ref": "VJD/24-25/995", "amount": 596927, "due": "22-Feb-2025", "overdueDays": 495}, {"date": "31-Mar-2025", "ref": "TCS NS Jewellers", "amount": 6384, "due": "30-May-2025", "overdueDays": 398}, {"date": "21-May-2025", "ref": "TI/25-26/0193", "amount": 151244, "due": "20-Jul-2025", "overdueDays": 347}, {"date": "23-May-2025", "ref": "TI/25-26/0197", "amount": 7115331, "due": "22-Jul-2025", "overdueDays": 345}, {"date": "11-Oct-2025", "ref": "TI/25-26/0830", "amount": 62877, "due": "10-Dec-2025", "overdueDays": 204}], "total": 8061275}, {"party": "Pallavi Vikram", "rep": "Chirag Jadau", "bills": [{"date": "07-Mar-2026", "ref": "TI/25-26/1567", "amount": 56110.68, "due": "06-May-2026", "overdueDays": 57}, {"date": "07-Mar-2026", "ref": "TI/25-26/1568", "amount": 423330, "due": "06-May-2026", "overdueDays": 57}, {"date": "07-Mar-2026", "ref": "TI/25-26/1569", "amount": 22723, "due": "06-May-2026", "overdueDays": 57}, {"date": "27-Mar-2026", "ref": "TI/25-26/1639", "amount": 216855, "due": "26-May-2026", "overdueDays": 37}, {"date": "27-Mar-2026", "ref": "TI/25-26/1640", "amount": 15087, "due": "26-May-2026", "overdueDays": 37}, {"date": "27-Mar-2026", "ref": "TI/25-26/1641", "amount": 398497, "due": "26-May-2026", "overdueDays": 37}, {"date": "28-Mar-2026", "ref": "TI/25-26/1661", "amount": 6591, "due": "27-May-2026", "overdueDays": 36}], "total": 1139193.68}, {"party": "Parekh Borthers", "rep": "Chirag Jadau", "bills": [{"date": "16-Jun-2026", "ref": "TI/26-27/0280", "amount": 873437, "due": "15-Aug-2026", "overdueDays": -44}, {"date": "24-Jun-2026", "ref": "TI/26-27/0297", "amount": 59810, "due": "23-Aug-2026", "overdueDays": -52}], "total": 933247}, {"party": "Parekh Ornaments LLP", "rep": "Chirag Jadau", "bills": [{"date": "06-Apr-2026", "ref": "TI/26-27/0019", "amount": 353227, "due": "05-Jun-2026", "overdueDays": 27}, {"date": "13-Apr-2026", "ref": "TI/26-27/0059", "amount": 413973, "due": "12-Jun-2026", "overdueDays": 20}, {"date": "02-Jun-2026", "ref": "TI/26-27/0232", "amount": 2084, "due": "01-Aug-2026", "overdueDays": -30}, {"date": "10-Jun-2026", "ref": "TI/26-27/0261", "amount": 3391379, "due": "09-Aug-2026", "overdueDays": -38}, {"date": "16-Jun-2026", "ref": "TI/26-27/0277", "amount": 3187534, "due": "15-Aug-2026", "overdueDays": -44}, {"date": "16-Jun-2026", "ref": "TI/26-27/0279", "amount": 458434, "due": "15-Aug-2026", "overdueDays": -44}, {"date": "27-Jun-2026", "ref": "TI/26-27/0314", "amount": 644175, "due": "26-Aug-2026", "overdueDays": -55}], "total": 8450806}, {"party": "Parshwa Diamond Debor", "rep": "Suspense", "bills": [{"date": "31-Mar-2026", "ref": "TI/25-26/1673", "amount": 9038415, "due": "27-Sep-2026", "overdueDays": -87}], "total": 9038415}, {"party": "P K Jewellers Pvt Ltd", "rep": "Prateek Sir", "bills": [{"date": "30-May-2026", "ref": "TI/26-27/0227", "amount": 463193, "due": "29-Jul-2026", "overdueDays": -27}], "total": 463193}, {"party": "Pooja Ornaments Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "28-Apr-2026", "ref": "TI/26-27/0122", "amount": 6912509, "due": "27-Jun-2026", "overdueDays": 5}, {"date": "26-May-2026", "ref": "TI/26-27/0200", "amount": 1193278, "due": "25-Jul-2026", "overdueDays": -23}], "total": 8105787}, {"party": "Radhey Lal and Sons", "rep": "Kartik Jadau", "bills": [{"date": "07-Dec-2024", "ref": "VJD/24-25/923", "amount": 14066, "due": "05-Feb-2025", "overdueDays": 512}], "total": 14066}, {"party": "Ranka Jewellers Z3", "rep": "Chirag Jadau", "bills": [{"date": "02-Apr-2026", "ref": "TI/26-27/0013", "amount": 821738, "due": "01-Jun-2026", "overdueDays": 31}, {"date": "06-Apr-2026", "ref": "TI/26-27/0017", "amount": 1031731, "due": "05-Jun-2026", "overdueDays": 27}, {"date": "15-Jun-2026", "ref": "TI/26-27/0272", "amount": 359449, "due": "14-Aug-2026", "overdueDays": -43}], "total": 2212918}, {"party": "Rathod Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "20-Mar-2026", "ref": "TI/25-26/1616", "amount": 47233.28, "due": "19-May-2026", "overdueDays": 44}, {"date": "26-Mar-2026", "ref": "TI/25-26/1637", "amount": 361960, "due": "25-May-2026", "overdueDays": 38}, {"date": "31-Mar-2026", "ref": "TI/25-26/1668", "amount": 1190647, "due": "30-May-2026", "overdueDays": 33}, {"date": "09-Apr-2026", "ref": "TI/26-27/0029", "amount": 2467858, "due": "08-Jun-2026", "overdueDays": 24}, {"date": "09-Apr-2026", "ref": "TI/26-27/0033", "amount": 83174, "due": "08-Jun-2026", "overdueDays": 24}, {"date": "13-Apr-2026", "ref": "TI/26-27/0056", "amount": 18858, "due": "12-Jun-2026", "overdueDays": 20}, {"date": "14-Apr-2026", "ref": "TI/26-27/0066", "amount": 28361, "due": "13-Jun-2026", "overdueDays": 19}, {"date": "16-Apr-2026", "ref": "TI/26-27/0073", "amount": 929003, "due": "15-Jun-2026", "overdueDays": 17}, {"date": "05-May-2026", "ref": "TI/26-27/0143", "amount": 897378, "due": "04-Jul-2026", "overdueDays": -2}, {"date": "06-May-2026", "ref": "TI/26-27/0146", "amount": 487319, "due": "05-Jul-2026", "overdueDays": -3}, {"date": "19-May-2026", "ref": "TI/26-27/0185", "amount": 816486, "due": "18-Jul-2026", "overdueDays": -16}, {"date": "26-May-2026", "ref": "TI/26-27/0202", "amount": 961399, "due": "25-Jul-2026", "overdueDays": -23}, {"date": "29-May-2026", "ref": "TI/26-27/0223", "amount": 31029, "due": "28-Jul-2026", "overdueDays": -26}, {"date": "03-Jun-2026", "ref": "TI/26-27/0237", "amount": 16078, "due": "02-Aug-2026", "overdueDays": -31}, {"date": "26-Jun-2026", "ref": "TI/26-27/0306", "amount": 838026, "due": "25-Aug-2026", "overdueDays": -54}], "total": 9174809.28}, {"party": "Ratlam Abhushan Private Limited", "rep": "Chirag Jadau", "bills": [{"date": "22-Apr-2026", "ref": "TI/26-27/0101", "amount": 26946, "due": "21-Jun-2026", "overdueDays": 11}, {"date": "06-Jun-2026", "ref": "TI/26-27/0253", "amount": 252091, "due": "05-Aug-2026", "overdueDays": -34}], "total": 279037}, {"party": "Regal Jewellers Pvt Ltd", "rep": "Abhishek Jadau", "bills": [{"date": "09-Apr-2026", "ref": "TI/26-27/0028", "amount": 9751878, "due": "08-Jun-2026", "overdueDays": 24}, {"date": "09-Apr-2026", "ref": "TI/26-27/0034", "amount": 103153, "due": "08-Jun-2026", "overdueDays": 24}, {"date": "11-May-2026", "ref": "TI/26-27/0161", "amount": 958370, "due": "10-Jul-2026", "overdueDays": -8}], "total": 10813401}, {"party": "Rikhab Das Udai Chand", "rep": "Kartik Jadau", "bills": [{"date": "18-Apr-2026", "ref": "TI/26-27/0088", "amount": 771585, "due": "17-Jun-2026", "overdueDays": 15}, {"date": "15-May-2026", "ref": "TI/26-27/0176", "amount": 3136946, "due": "14-Jul-2026", "overdueDays": -12}, {"date": "10-Jun-2026", "ref": "TI/26-27/0260", "amount": 1344516, "due": "09-Aug-2026", "overdueDays": -38}], "total": 5253047}, {"party": "Sagarmal & Sons Ventures Private Limited", "rep": "Abhishek Jadau", "bills": [{"date": "24-Feb-2026", "ref": "TI/25-26/1534", "amount": 673075, "due": "25-Apr-2026", "overdueDays": 68}], "total": 673075}, {"party": "Saheli Jewellers", "rep": "Kartik Jadau", "bills": [{"date": "31-Mar-2023", "ref": "TCS", "amount": 7100, "due": "30-Apr-2023", "overdueDays": 1159}], "total": 7100}, {"party": "Sajavat Jewels", "rep": "Chirag Jadau", "bills": [{"date": "01-Oct-2025", "ref": "TI/25-26/0807", "amount": 125, "due": "01-Oct-2025", "overdueDays": 274}, {"date": "10-Jun-2026", "ref": "TI/26-27/0262", "amount": 83131, "due": "09-Aug-2026", "overdueDays": -38}], "total": 83256}, {"party": "Senco Gold Limited", "rep": "Abhishek Jadau", "bills": [{"date": "13-Apr-2026", "ref": "TI/26-27/0055", "amount": 6386, "due": "12-Jun-2026", "overdueDays": 20}, {"date": "27-May-2026", "ref": "TI/26-27/0209", "amount": 2143, "due": "26-Jul-2026", "overdueDays": -24}], "total": 8529}, {"party": "Shah Virchand Govanji Jewellers Pvt Ltd", "rep": "Chirag Jadau", "bills": [{"date": "12-Feb-2026", "ref": "TI/25-26/1475", "amount": 189788, "due": "13-Apr-2026", "overdueDays": 80}, {"date": "26-Mar-2026", "ref": "TI/25-26/1635", "amount": 252625, "due": "25-May-2026", "overdueDays": 38}, {"date": "18-Apr-2026", "ref": "TI/26-27/0095", "amount": 170910, "due": "17-Jun-2026", "overdueDays": 15}, {"date": "23-Jun-2026", "ref": "TI/26-27/0295", "amount": 757390, "due": "22-Aug-2026", "overdueDays": -51}], "total": 1370713}, {"party": "Shilpa Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "23-Jan-2026", "ref": "TI/25-26/1372", "amount": 953835, "due": "24-Mar-2026", "overdueDays": 100}, {"date": "23-Jan-2026", "ref": "TI/25-26/1370", "amount": 1209929, "due": "24-Mar-2026", "overdueDays": 100}, {"date": "23-Jan-2026", "ref": "TI/25-26/1371", "amount": 350501, "due": "24-Mar-2026", "overdueDays": 100}, {"date": "29-Jan-2026", "ref": "TI/25-26/1394", "amount": 1829468, "due": "30-Mar-2026", "overdueDays": 94}, {"date": "12-Feb-2026", "ref": "TI/25-26/1479", "amount": 4002143, "due": "13-Apr-2026", "overdueDays": 80}, {"date": "12-Feb-2026", "ref": "TI/25-26/1480", "amount": 1392737, "due": "13-Apr-2026", "overdueDays": 80}, {"date": "12-Feb-2026", "ref": "TI/25-26/1481", "amount": 661681, "due": "13-Apr-2026", "overdueDays": 80}, {"date": "12-Feb-2026", "ref": "TI/25-26/1482", "amount": 1304690, "due": "13-Apr-2026", "overdueDays": 80}, {"date": "21-Feb-2026", "ref": "TI/25-26/1532", "amount": 1231420, "due": "22-Apr-2026", "overdueDays": 71}, {"date": "19-Mar-2026", "ref": "TI/25-26/1609", "amount": 670574, "due": "18-May-2026", "overdueDays": 45}], "total": 13606978}, {"party": "Solitaire Diamond Boutique", "rep": "Kartik Jadau", "bills": [{"date": "26-Nov-2025", "ref": "TI/25-26/1106", "amount": 228907, "due": "25-Jan-2026", "overdueDays": 158}, {"date": "29-Jan-2026", "ref": "TI/25-26/1395", "amount": 1299683, "due": "30-Mar-2026", "overdueDays": 94}, {"date": "05-Feb-2026", "ref": "TI/25-26/1436", "amount": 981396, "due": "06-Apr-2026", "overdueDays": 87}], "total": 2509986}, {"party": "Suncity Jewels", "rep": "Mukesh Sir", "bills": [{"date": "03-Jun-2026", "ref": "TI/26-27/0235", "amount": 133479.5, "due": "02-Aug-2026", "overdueDays": -31}], "total": 133479.5}, {"party": "Swarna Shilpi Jewellers Chennai Pvt Ltd", "rep": "Abhishek Jadau", "bills": [{"date": "30-May-2026", "ref": "TI/26-27/0228", "amount": 2705774, "due": "29-Jul-2026", "overdueDays": -27}], "total": 2705774}, {"party": "Tejaswi Jewellers Jawaharlal Motilal Saraf", "rep": "Chirag Jadau", "bills": [{"date": "29-Nov-2025", "ref": "TI/25-26/1127", "amount": 1178909, "due": "28-Jan-2026", "overdueDays": 155}, {"date": "03-Dec-2025", "ref": "TI/25-26/1147", "amount": 207221, "due": "01-Feb-2026", "overdueDays": 151}, {"date": "26-Mar-2026", "ref": "TI/25-26/1633", "amount": 1446277, "due": "25-May-2026", "overdueDays": 38}, {"date": "11-Apr-2026", "ref": "TI/26-27/0047", "amount": 37073, "due": "10-Jun-2026", "overdueDays": 22}, {"date": "18-Apr-2026", "ref": "TI/26-27/0094", "amount": 35212, "due": "17-Jun-2026", "overdueDays": 15}, {"date": "26-May-2026", "ref": "TI/26-27/0203", "amount": 845296, "due": "25-Jul-2026", "overdueDays": -23}], "total": 3749988}, {"party": "Thakur Prasad Gopal Das Jewellers  Pvt Ltd", "rep": "Kartik Jadau", "bills": [{"date": "14-Feb-2026", "ref": "TI/25-26/1489", "amount": 2050539, "due": "15-Apr-2026", "overdueDays": 78}, {"date": "17-Feb-2026", "ref": "TI/25-26/1510", "amount": 575970, "due": "18-Apr-2026", "overdueDays": 75}, {"date": "08-Apr-2026", "ref": "TI/26-27/0023", "amount": 812674, "due": "07-Jun-2026", "overdueDays": 25}, {"date": "06-May-2026", "ref": "TI/26-27/0144", "amount": 471103, "due": "05-Jul-2026", "overdueDays": -3}, {"date": "28-May-2026", "ref": "TI/26-27/0214", "amount": 668645, "due": "27-Jul-2026", "overdueDays": -25}, {"date": "06-Jun-2026", "ref": "TI/26-27/0252", "amount": 247241, "due": "05-Aug-2026", "overdueDays": -34}], "total": 4826172}, {"party": "Ujjwal Jewellers", "rep": "Kartik Jadau", "bills": [{"date": "01-Oct-2025", "ref": "TI/25-26/0773", "amount": 1758, "due": "30-Nov-2025", "overdueDays": 214}, {"date": "05-Nov-2025", "ref": "TI/25-26/0958", "amount": 347, "due": "04-Jan-2026", "overdueDays": 179}], "total": 2105}, {"party": "Valentine Jewellery International Basment", "rep": "Mukesh Sir", "bills": [{"date": "16-May-2026", "ref": "TI/26-27/0180", "amount": 34, "due": "14-Aug-2026", "overdueDays": -43}, {"date": "12-Jun-2026", "ref": "TI/26-27/0265", "amount": 82053, "due": "11-Aug-2026", "overdueDays": -40}, {"date": "29-Jun-2026", "ref": "TI/26-27/0318", "amount": 12365, "due": "28-Aug-2026", "overdueDays": -57}], "total": 94452}, {"party": "Varaa Jewels Private Limited", "rep": "Sanjay Jadau", "bills": [{"date": "17-Apr-2026", "ref": "TI/26-27/0080", "amount": 379975, "due": "16-Jun-2026", "overdueDays": 16}, {"date": "24-Apr-2026", "ref": "TI/26-27/0114", "amount": 1572285, "due": "23-Jun-2026", "overdueDays": 9}], "total": 1952260}, {"party": "V I M Gold & Jewellery LLC ( Export)", "rep": "Mukesh Sir", "bills": [{"date": "29-Jun-2026", "ref": "EI/26-27/EX04", "amount": 22988160, "due": "28-Aug-2026", "overdueDays": -57}], "total": 22988160}, {"party": "Vummidi Bangaru Jewellers (India) Private Limited", "rep": "Abhishek Jadau", "bills": [{"date": "06-Jun-2026", "ref": "TI/26-27/0251", "amount": 5409373, "due": "05-Aug-2026", "overdueDays": -34}], "total": 5409373}, {"party": "Waman Hari Pathe Jewellers", "rep": "Chirag Jadau", "bills": [{"date": "14-Apr-2026", "ref": "TI/26-27/0064", "amount": 114890, "due": "13-Jun-2026", "overdueDays": 19}], "total": 114890}];
 const REPORT_DATE = new Date(2026, 6, 2); // 2-Jul-2026
 
 /* ============================================================
@@ -352,51 +338,6 @@ const USERS = {
 };
 
 let session = null; // {username, role, rep}
-let rawData = null; // raw parsed party array (source of truth)
-
-rawData = FALLBACK_DATA; // temporary, replaced once fetch resolves
-let dataReady = fetchBillsJson();
-
-function fetchBillsJson(){
-  const cacheBust = 't=' + Date.now();
-  // Try the hardcoded absolute URL first, then relative paths as fallbacks
-  // (covers cases where the page is served from a different path/branch preview).
-  const candidates = [
-    BILLS_JSON_URL + (BILLS_JSON_URL.includes('?') ? '&' : '?') + cacheBust,
-    './bills.json?' + cacheBust,
-    'bills.json?' + cacheBust
-  ];
-
-  function tryNext(i, lastErr){
-    if(i >= candidates.length){
-      console.warn('Could not load bills.json from any candidate URL.', lastErr);
-      rawData = FALLBACK_DATA; // empty — this app has no bundled data by design
-      const note = document.getElementById('dataSourceNote');
-      note.textContent = '⚠ Could not reach bills.json (' + (lastErr ? lastErr.message : 'unknown error') + '). No data to display.';
-      note.style.color = '#c0473f';
-      return;
-    }
-    const url = candidates[i];
-    return fetch(url, {cache:'no-store'})
-      .then(res => {
-        if(!res.ok) throw new Error('HTTP ' + res.status + ' for ' + url);
-        return res.json();
-      })
-      .then(json => {
-        if(Array.isArray(json) && json.length){
-          rawData = json;
-          const note = document.getElementById('dataSourceNote');
-          note.textContent = 'Live data from bills.json ✓';
-          note.style.color = 'var(--mint-ink)';
-        } else {
-          throw new Error('bills.json is empty or not an array (' + url + ')');
-        }
-      })
-      .catch(err => tryNext(i + 1, err));
-  }
-
-  return tryNext(0, null);
-}
 
 /* ============================================================
    LOGIN HANDLERS
@@ -411,14 +352,7 @@ function doLogin(){
     return;
   }
   errEl.style.display = 'none';
-  const loginBtn = document.getElementById('loginBtn');
-  loginBtn.disabled = true;
-  loginBtn.textContent = 'Loading data…';
-  dataReady.finally(() => {
-    loginBtn.disabled = false;
-    loginBtn.textContent = 'Login';
-    completeLogin(u, uname);
-  });
+  completeLogin(u, uname);
 }
 
 function completeLogin(u, uname){
@@ -433,7 +367,6 @@ function showApp(){
 
   try{
     if(session.role === 'admin'){
-      document.getElementById('adminTools').style.display = 'flex';
       document.getElementById('repPanel').style.display = 'block';
       document.getElementById('whoName').textContent = 'Admin';
       document.getElementById('whoRole').textContent = 'Administrator · full access';
@@ -441,7 +374,6 @@ function showApp(){
       state.rep = null;
       state.lockedRep = null;
     } else {
-      document.getElementById('adminTools').style.display = 'none';
       document.getElementById('repPanel').style.display = 'none';
       document.getElementById('whoName').textContent = session.rep;
       document.getElementById('whoRole').textContent = 'Sales Representative';
@@ -455,22 +387,20 @@ function showApp(){
     console.error('Dashboard failed to render:', err);
     const banner = document.getElementById('dataErrorBanner');
     banner.style.display = 'block';
-    banner.textContent = '⚠ Something went wrong rendering the dashboard: ' + err.message + ' (see browser console for details).';
+    banner.textContent = '⚠ Something went wrong rendering the dashboard: ' + err.message;
   }
 }
 
-// Restore an existing session (e.g. after a page refresh) once bills.json has loaded
 function restoreSession(){
   let stored = null;
   try{ stored = JSON.parse(sessionStorage.getItem('debtors_session')); }catch(e){}
   if(stored && USERS[stored.username]){
     session = stored;
-    dataReady.finally(showApp);
+    showApp();
     return true;
   }
   return false;
 }
-restoreSession();
 
 document.getElementById('loginBtn').addEventListener('click', doLogin);
 document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
@@ -486,121 +416,12 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
 });
 
 /* ============================================================
-   EXCEL IMPORT (admin only) — mirrors the Tally export layout:
-   columns: Date | Ref No. | Party's Name | Name(rep) | Pending Amount | Due on | Overdue by days
-   ============================================================ */
-document.getElementById('importBtn').addEventListener('click', ()=>{
-  document.getElementById('fileInput').click();
-});
-
-document.getElementById('fileInput').addEventListener('change', (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const statusEl = document.getElementById('importStatus');
-  statusEl.textContent = 'Reading…';
-  const reader = new FileReader();
-  reader.onload = function(evt){
-    try{
-      const wb = XLSX.read(evt.target.result, {type:'binary', cellDates:true});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:false, dateNF:'yyyy-mm-dd'});
-      const parsed = parseExcelRows(ws);
-      if(parsed.length === 0){
-        statusEl.textContent = '⚠ No accounts found in file.';
-        statusEl.style.color = '#c0473f';
-        return;
-      }
-      rawData = parsed;
-      rebuildData();
-      renderAll();
-      statusEl.style.color = 'var(--mint-ink)';
-      statusEl.textContent = `✓ Parsed ${parsed.length} accounts — click "Download bills.json" and replace the file in your repo to publish it.`;
-    }catch(err){
-      statusEl.style.color = '#c0473f';
-      statusEl.textContent = '⚠ Could not parse file.';
-      console.error(err);
-    }
-  };
-  reader.readAsBinaryString(file);
-});
-
-function excelSerialToDate(v){
-  // handles JS Date objects or excel serial numbers
-  if(v instanceof Date) return v;
-  if(typeof v === 'number'){
-    const d = XLSX.SSF.parse_date_code(v);
-    if(d) return new Date(d.y, d.m-1, d.d);
-  }
-  if(typeof v === 'string' && v.trim() !== ''){
-    const d = new Date(v);
-    if(!isNaN(d)) return d;
-  }
-  return null;
-}
-
-function fmtDateDMY(d){
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return String(d.getDate()).padStart(2,'0') + '-' + months[d.getMonth()] + '-' + d.getFullYear();
-}
-
-function parseExcelRows(ws){
-  // read raw cell values (not date-formatted strings) so we can detect dates reliably
-  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
-  const dataRows = rows.slice(9); // skip the 9-row letterhead + header block (matches source template)
-  const parties = [];
-  let cur = null;
-
-  dataRows.forEach(r=>{
-    const date = r[0], ref = r[1], party = r[2], name = r[3], amount = r[4], dueon = r[5];
-    if(party && String(party).trim() !== '' && String(party).trim() !== "Party's Name"){
-      if(cur) parties.push(cur);
-      let rep = (name ? String(name).trim() : 'Unknown').replace(/\s+/g,' ');
-      rep = rep.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
-      cur = { party: String(party).trim(), rep: rep, bills: [], total: 0 };
-      return;
-    }
-    if(!cur) return;
-    if(date != null && ref){
-      const d = excelSerialToDate(date);
-      const due = excelSerialToDate(dueon);
-      const overdueDays = due ? Math.round((REPORT_DATE - due) / 86400000) : 0;
-      cur.bills.push({
-        date: d ? fmtDateDMY(d) : String(date),
-        ref: String(ref),
-        amount: amount ? Math.round(amount*100)/100 : 0,
-        due: due ? fmtDateDMY(due) : null,
-        overdueDays: overdueDays
-      });
-    } else if((date===null||date==='') && (ref===''||ref===null) && (party===''||party===null) && amount!=null && dueon===null){
-      cur.total = Math.round(amount*100)/100;
-    }
-  });
-  if(cur) parties.push(cur);
-  return parties;
-}
-
-/* ============================================================
-   EXPORT bills.json (admin only)
-   ============================================================ */
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(rawData, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'bills.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-/* ============================================================
    DASHBOARD LOGIC
    ============================================================ */
 let data = [];
 function rebuildData(){
   let skipped = 0;
-  data = (Array.isArray(rawData) ? rawData : []).map(p => {
+  data = (Array.isArray(RAW_DATA) ? RAW_DATA : []).map(p => {
     try{
       const party = String(p.party || '').trim();
       const rep = String(p.rep || 'Unknown').trim();
@@ -619,18 +440,15 @@ function rebuildData(){
       return { party, rep, bills, total, maxOD, overdueAmt, due7, due15 };
     }catch(e){
       skipped++;
-      console.warn('Skipping malformed record in bills.json:', p, e);
+      console.warn('Skipping malformed record:', p, e);
       return null;
     }
   }).filter(Boolean);
 
   const banner = document.getElementById('dataErrorBanner');
-  if(!Array.isArray(rawData) || rawData.length === 0){
+  if(skipped > 0){
     banner.style.display = 'block';
-    banner.textContent = '⚠ bills.json loaded but contained no accounts (empty or wrong format). Showing nothing to display.';
-  } else if(skipped > 0){
-    banner.style.display = 'block';
-    banner.textContent = `⚠ ${skipped} of ${rawData.length} record(s) in bills.json were malformed and skipped. Check the browser console for details.`;
+    banner.textContent = `⚠ ${skipped} record(s) were malformed and skipped.`;
   } else {
     banner.style.display = 'none';
   }
@@ -690,7 +508,7 @@ function repSummaries(){
 }
 
 function renderRepGrid(){
-  if(state.lockedRep) return; // reps don't get the picker
+  if(state.lockedRep) return;
   const el = document.getElementById('repGrid');
   const reps = repSummaries();
   el.innerHTML = reps.map(r => `
@@ -834,6 +652,9 @@ document.querySelectorAll('thead th[data-sort]').forEach(th=>{
     renderTable();
   });
 });
+
+/* Restore session on page load/refresh so login persists */
+restoreSession();
 </script>
 </body>
 </html>
