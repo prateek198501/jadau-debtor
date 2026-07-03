@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Debtors Dashboard — Valentine Jadau</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   :root{
@@ -24,6 +25,7 @@
     --shadow: 0 2px 10px rgba(120,90,110,0.07);
   }
   *{box-sizing:border-box;}
+  html, body{max-width:100%; overflow-x:hidden;}
   body{
     margin:0;
     font-family:'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -31,8 +33,15 @@
     color:var(--ink);
     padding:24px;
   }
+  @media (max-width:600px){
+    body{padding:14px;}
+  }
   h1{font-size:22px; margin:0 0 4px 0; font-weight:700;}
   .subtitle{color:var(--sub); font-size:13px; margin-bottom:22px;}
+  @media (max-width:480px){
+    h1{font-size:18px;}
+    .subtitle{font-size:11.5px; margin-bottom:16px;}
+  }
 
   /* ---------- LOGIN ---------- */
   #loginScreen{
@@ -47,8 +56,12 @@
     border-radius:20px;
     box-shadow:var(--shadow);
     padding:36px 34px;
-    width:340px;
+    width:100%;
+    max-width:340px;
     text-align:center;
+  }
+  @media (max-width:420px){
+    .login-card{padding:28px 22px;}
   }
   .login-card .badge{
     width:56px; height:56px; border-radius:16px;
@@ -81,6 +94,12 @@
     display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;
     flex-wrap:wrap; gap:10px;
   }
+  @media (max-width:480px){
+    .topbar{gap:12px;}
+    .topbar > div:last-child{width:100%; justify-content:space-between;}
+    .who{flex:1; min-width:0;}
+    .who .meta{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  }
   .who{
     display:flex; align-items:center; gap:10px; background:var(--card);
     border:1px solid var(--border); border-radius:14px; padding:8px 14px; box-shadow:var(--shadow);
@@ -104,6 +123,12 @@
     gap:14px;
     margin-bottom:22px;
   }
+  @media (max-width:480px){
+    .grid-summary{grid-template-columns:1fr 1fr; gap:10px;}
+  }
+  @media (max-width:360px){
+    .grid-summary{grid-template-columns:1fr;}
+  }
   .stat-card{
     background:var(--card);
     border-radius:16px;
@@ -112,6 +137,10 @@
     border:1px solid var(--border);
     position:relative;
     overflow:hidden;
+  }
+  @media (max-width:480px){
+    .stat-card{padding:14px 16px;}
+    .stat-card .value{font-size:19px;}
   }
   .stat-card .label{font-size:12px; color:var(--sub); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;}
   .stat-card .value{font-size:24px; font-weight:700;}
@@ -135,6 +164,9 @@
     border:1px solid var(--border);
     margin-bottom:20px;
   }
+  @media (max-width:480px){
+    .panel{padding:14px;}
+  }
   .panel h2{font-size:15px; margin:0 0 14px 0; font-weight:700; display:flex; align-items:center; gap:8px;}
   .panel h2 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
 
@@ -142,6 +174,9 @@
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(190px,1fr));
     gap:10px;
+  }
+  @media (max-width:420px){
+    .rep-grid{grid-template-columns:1fr;}
   }
   .rep-chip{
     border:1.5px solid var(--border);
@@ -217,6 +252,7 @@
   .od-high{background:#fbdada; color:#c0473f;}
 
   .drill{display:none; background:#fdfaf8;}
+  .drill.show{display:table-row;}
   .drill td{padding:0;}
   .drill-inner{padding:14px 20px 18px 40px;}
   .bill-row{
@@ -227,6 +263,49 @@
   .bill-row .amt{text-align:right;}
   .caret{display:inline-block; transition:.15s; margin-right:6px; color:var(--sub);}
   tr.open .caret{transform:rotate(90deg);}
+
+  /* ---------- MOBILE: card layout, zero horizontal scroll ---------- */
+  @media (max-width:700px){
+    table, thead, tbody, th, td, tr{ display:block; width:100%; }
+    thead{ display:none; }
+    tbody tr.main-row{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      margin-bottom:10px; padding:12px 14px; box-shadow:var(--shadow);
+    }
+    tbody tr.main-row:hover{ background:var(--card); }
+    tbody tr.main-row td{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:5px 0; border:none; gap:10px;
+    }
+    tbody tr.main-row td::before{
+      content:attr(data-label); color:var(--sub); font-size:10.5px; text-transform:uppercase;
+      letter-spacing:.03em; font-weight:600; flex-shrink:0;
+    }
+    tbody tr.main-row td.party-name{
+      display:block; font-size:15px; padding:0 0 8px 0; margin-bottom:6px;
+      border-bottom:1px solid var(--border);
+    }
+    tbody tr.main-row td.party-name::before{ content:none; }
+
+    tr.drill{ display:none; }
+    tr.drill.show{ display:block; }
+    .drill td{ display:block; padding:0; width:100%; }
+    .drill-inner{ padding:2px 4px 10px 4px; }
+
+    .bill-row.head{ display:none; }
+    .bill-row{
+      display:block; grid-template-columns:none; padding:10px 0; border-bottom:1px dashed var(--border);
+    }
+    .bill-row > div{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:3px 0; font-size:12.5px;
+    }
+    .bill-row > div::before{
+      content:attr(data-label); color:var(--sub); font-size:10px; text-transform:uppercase;
+      letter-spacing:.03em; font-weight:600;
+    }
+    .bill-row .amt{ text-align:right; }
+  }
 
   .empty-state{text-align:center; padding:30px; color:var(--sub); font-size:13px;}
   .count-pill{font-size:11.5px; color:var(--sub); font-weight:500;}
@@ -293,7 +372,12 @@
   </div>
 
   <div class="panel">
-    <h2><span class="dot" style="background:var(--mint-ink)"></span>Accounts <span class="count-pill" id="resultCount"></span></h2>
+    <h2 style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="dot" style="background:var(--mint-ink)"></span>Accounts <span class="count-pill" id="resultCount"></span>
+      </span>
+      <button class="btn" id="exportBtn">📊 Export to Excel</button>
+    </h2>
     <table>
       <thead>
         <tr>
@@ -585,31 +669,42 @@ function renderTable(){
   document.getElementById('emptyState').style.display = rows.length ? 'none' : 'block';
 
   tbody.innerHTML = rows.map((p, idx) => {
-    const billRows = p.bills.map(b => `
+    // Only show bills that themselves meet the min-overdue-days threshold —
+    // matching an account shouldn't reveal its unrelated, non-overdue bills.
+    const visibleBills = state.minOverdue > 0
+      ? p.bills.filter(b => b.overdueDays >= state.minOverdue)
+      : p.bills;
+    const hiddenCount = p.bills.length - visibleBills.length;
+
+    const billRows = visibleBills.map(b => `
       <div class="bill-row">
-        <div>${b.date}</div>
-        <div>${b.ref}</div>
-        <div>${b.due || '—'}</div>
-        <div><span class="od-badge ${odBadgeClass(b.overdueDays)}">${odBadgeLabel(b.overdueDays)}</span></div>
-        <div class="amt">${fmtINR(b.amount)}</div>
+        <div data-label="Bill Date">${b.date}</div>
+        <div data-label="Ref No.">${b.ref}</div>
+        <div data-label="Due On">${b.due || '—'}</div>
+        <div data-label="Overdue"><span class="od-badge ${odBadgeClass(b.overdueDays)}">${odBadgeLabel(b.overdueDays)}</span></div>
+        <div class="amt" data-label="Amount">${fmtINR(b.amount)}</div>
       </div>
     `).join('');
+    const hiddenNote = hiddenCount > 0
+      ? `<div style="font-size:11px; color:var(--sub); padding:8px 0 0 0;">${hiddenCount} bill(s) below ${state.minOverdue}d overdue hidden by the current filter</div>`
+      : '';
     const isOpen = state.openParty === p.party;
     return `
       <tr class="main-row ${isOpen?'open':''}" data-party="${p.party}">
         <td class="party-name"><span class="caret">▶</span>${p.party}</td>
-        <td><span class="rep-tag">${p.rep}</span></td>
-        <td>${p.bills.length}</td>
-        <td><span class="od-badge ${odBadgeClass(p.maxOD)}">${odBadgeLabel(p.maxOD)}</span></td>
-        <td class="amt">${fmtINR(p.total)}</td>
+        <td data-label="Sales Rep"><span class="rep-tag">${p.rep}</span></td>
+        <td data-label="Bills">${p.bills.length}</td>
+        <td data-label="Max Overdue"><span class="od-badge ${odBadgeClass(p.maxOD)}">${odBadgeLabel(p.maxOD)}</span></td>
+        <td class="amt" data-label="Pending Amount">${fmtINR(p.total)}</td>
       </tr>
-      <tr class="drill" style="display:${isOpen?'table-row':'none'};">
+      <tr class="drill ${isOpen?'show':''}">
         <td colspan="5">
           <div class="drill-inner">
             <div class="bill-row head">
               <div>Bill Date</div><div>Ref No.</div><div>Due On</div><div>Overdue</div><div>Amount</div>
             </div>
             ${billRows}
+            ${hiddenNote}
           </div>
         </td>
       </tr>
@@ -654,6 +749,51 @@ document.querySelectorAll('thead th[data-sort]').forEach(th=>{
 });
 
 /* Restore session on page load/refresh so login persists */
+/* ============================================================
+   EXPORT TO EXCEL — exports exactly what's currently on screen
+   (same filters: rep lock, search, min overdue days), including
+   only the bills that individually meet the overdue threshold.
+   ============================================================ */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = getFiltered();
+  if(rows.length === 0){
+    alert('No accounts match the current filters — nothing to export.');
+    return;
+  }
+
+  // Primary sheet: one row per bill (full detail) — respects the overdue-days
+  // filter the same way the on-screen drill-down does.
+  const detailSheet = [
+    ['Party Name', 'Sales Rep', 'Bill Date', 'Ref No.', 'Due On', 'Overdue (days)', 'Bill Amount', 'Account Total Pending', 'Account Max Overdue (days)']
+  ];
+  // Secondary sheet: one row per account (quick reference summary)
+  const summarySheet = [
+    ['Party Name', 'Sales Rep', 'Bills (matching filter)', 'Max Overdue (days)', 'Pending Amount']
+  ];
+
+  rows.forEach(p => {
+    const visibleBills = state.minOverdue > 0
+      ? p.bills.filter(b => b.overdueDays >= state.minOverdue)
+      : p.bills;
+    summarySheet.push([p.party, p.rep, visibleBills.length, p.maxOD, p.total]);
+    visibleBills.forEach(b => {
+      detailSheet.push([p.party, p.rep, b.date, b.ref, b.due || '', b.overdueDays, b.amount, p.total, p.maxOD]);
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(detailSheet);
+  const ws2 = XLSX.utils.aoa_to_sheet(summarySheet);
+  ws1['!cols'] = [{wch:32},{wch:20},{wch:12},{wch:16},{wch:12},{wch:14},{wch:14},{wch:18},{wch:20}];
+  ws2['!cols'] = [{wch:32},{wch:20},{wch:14},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Bill Details');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Accounts Summary');
+
+  const who = session.role === 'admin' ? 'admin' : session.rep.replace(/\s+/g,'_');
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `debtors_export_${who}_${stamp}.xlsx`);
+});
+
 restoreSession();
 </script>
 </body>
